@@ -1,0 +1,857 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>籃球分隊及賽程計分系統</title>
+    <style>
+        :root {
+            --primary: #ff6b00;
+            --dark: #2c3e50;
+            --light: #f8f9fa;
+            --border: #dee2e6;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #e9ecef;
+            color: var(--dark);
+            margin: 0;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+        }
+        h1, h2, h3 {
+            color: var(--dark);
+            border-bottom: 2px solid var(--primary);
+            padding-bottom: 8px;
+            margin-top: 25px;
+        }
+        h1 { text-align: center; border: none; color: var(--primary); margin-top: 0; }
+        .rules-box {
+            background: #fff3cd;
+            border-left: 5px solid #ffc107;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 4px;
+            font-size: 0.95em;
+        }
+        .btn {
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            padding: 10px 18px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 15px;
+            font-weight: bold;
+            margin-right: 8px;
+            margin-bottom: 8px;
+            transition: background 0.2s;
+        }
+        .btn:hover { background-color: #e05e00; }
+        .btn-secondary { background-color: #6c757d; }
+        .btn-secondary:hover { background-color: #5a6268; }
+        
+        textarea {
+            width: 100%;
+            height: 140px;
+            padding: 10px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            box-sizing: border-box;
+            font-size: 14px;
+            margin-bottom: 10px;
+            font-family: monospace;
+        }
+
+        .options-bar {
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .checkbox-label {
+            display: inline-flex;
+            align-items: center;
+            cursor: pointer;
+            font-size: 0.95em;
+            background: #f1f3f5;
+            padding: 6px 12px;
+            border-radius: 6px;
+            border: 1px solid var(--border);
+            user-select: none;
+        }
+        .checkbox-label input {
+            margin-right: 8px;
+            width: 16px;
+            height: 16px;
+        }
+
+        /* 拖拉分隊區域 */
+        .teams-wrapper {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+        .team-box {
+            background: var(--light);
+            border: 2px dashed #adb5bd;
+            border-radius: 8px;
+            padding: 12px;
+            min-height: 240px;
+            display: flex;
+            flex-direction: column;
+        }
+        .team-box.full { border-color: #28a745; border-style: solid; background: #f3fff5; }
+        .team-header {
+            font-weight: bold;
+            text-align: center;
+            margin-bottom: 10px;
+            padding-bottom: 5px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .player-list {
+            flex-grow: 1;
+            min-height: 180px;
+        }
+        .player-item {
+            background: white;
+            border: 1px solid var(--border);
+            padding: 8px 12px;
+            margin-bottom: 6px;
+            border-radius: 4px;
+            cursor: grab;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            user-select: none;
+        }
+        .player-item:active { cursor: grabbing; }
+        .player-item:hover { background: #f1f3f5; }
+        .team-select-mobile {
+            display: none;
+            font-size: 12px;
+            padding: 2px;
+        }
+        @media (max-width: 768px) {
+            .team-select-mobile { display: inline-block; }
+        }
+
+        /* 賽程與積分榜 */
+        .grid-2col {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 25px;
+        }
+        @media (max-width: 850px) {
+            .grid-2col { grid-template-columns: 1fr; }
+        }
+        .match-card {
+            background: var(--light);
+            border: 1px solid var(--border);
+            padding: 12px 15px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .match-teams {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: bold;
+            font-size: 1.1em;
+        }
+        .score-input {
+            width: 55px;
+            padding: 6px;
+            text-align: center;
+            font-size: 16px;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+        .match-status {
+            font-size: 0.9em;
+            padding: 4px 8px;
+            border-radius: 4px;
+            background: #e9ecef;
+            min-width: 80px;
+            text-align: center;
+        }
+        .status-win { background: #d4edda; color: #155724; font-weight: bold; }
+        .status-draw { background: #fff3cd; color: #856404; font-weight: bold; }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+        th, td {
+            border: 1px solid var(--border);
+            padding: 10px;
+            text-align: center;
+        }
+        th { background-color: var(--dark); color: white; }
+        tr:nth-child(even) { background-color: var(--light); }
+
+        .finals-summary {
+            background: #e8f4fd;
+            border: 2px solid #b8daff;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 15px;
+            text-align: center;
+            font-size: 1.1em;
+        }
+        .winner-announcement {
+            font-size: 1.3em;
+            color: #d9534f;
+            font-weight: bold;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>🏀 籃球分隊及賽程計分系統</h1>
+
+    <!-- 第一部分：輸入名單與分隊 -->
+    <h2>1. 球員名單及分隊 (每隊5人)</h2>
+    <div>
+        <textarea id="playerInput" placeholder="請直接貼上接龍報名名單（支援 1.TK 這種編號格式，每行一人）..."></textarea>
+        
+        <div class="options-bar">
+            <button class="btn" onclick="loadPlayers()">📥 載入名單至待分區</button>
+            <button class="btn" onclick="randomAssign()">🎲 隨機分隊</button>
+            <button class="btn btn-secondary" onclick="loadDefaultPlayers()">載入預設報名名單</button>
+            <button class="btn btn-secondary" onclick="resetTeams()">🔄 重設分區</button>
+            
+            <label class="checkbox-label">
+                <input type="checkbox" id="stripNumbers" checked onchange="loadPlayers()">
+                自動去除開頭編號 (若遇同名如 kenny fd 會自動標註編號區分)
+            </label>
+        </div>
+        <p style="font-size: 0.85em; color: #666; margin-top: 0;">💡 提示：直接從 WhatsApp 貼上接龍名單即可！電腦版可用<b>滑鼠拖拉</b>分隊；手機版可點擊球員右側選單分隊。</p>
+    </div>
+
+    <div class="teams-wrapper">
+        <div class="team-box" id="box-unassigned" ondrop="drop(event, 'unassigned')" ondragover="allowDrop(event)">
+            <div class="team-header">
+                <span>待分發球員</span>
+                <span id="count-unassigned">0</span>
+            </div>
+            <div class="player-list" id="list-unassigned"></div>
+        </div>
+
+        <div class="team-box" id="box-A" ondrop="drop(event, 'A')" ondragover="allowDrop(event)">
+            <div class="team-header"><span>Team A</span><span id="count-A">0/5</span></div>
+            <div class="player-list" id="list-A"></div>
+        </div>
+
+        <div class="team-box" id="box-B" ondrop="drop(event, 'B')" ondragover="allowDrop(event)">
+            <div class="team-header"><span>Team B</span><span id="count-B">0/5</span></div>
+            <div class="player-list" id="list-B"></div>
+        </div>
+
+        <div class="team-box" id="box-C" ondrop="drop(event, 'C')" ondragover="allowDrop(event)">
+            <div class="team-header"><span>Team C</span><span id="count-C">0/5</span></div>
+            <div class="player-list" id="list-C"></div>
+        </div>
+
+        <div class="team-box" id="box-D" ondrop="drop(event, 'D')" ondragover="allowDrop(event)">
+            <div class="team-header"><span>Team D</span><span id="count-D">0/5</span></div>
+            <div class="player-list" id="list-D"></div>
+        </div>
+    </div>
+
+    <!-- 第二部分：單循環小組賽與積分榜 -->
+    <h2>2. 小組單循環賽 & 積分榜</h2>
+    <div class="rules-box">
+        <strong>⏱️ 小組賽規則：</strong> 10分鐘一節 或 先到15分（10分鐘完場未達15分，則較高分為勝方）。<br>
+        <strong>📊 計分方式：</strong> 勝方 (先到15分或時間到高分) <strong>+2積分</strong> ｜ 和局 <strong>+1積分</strong> ｜ 負方 <strong>0積分</strong>。
+    </div>
+
+    <div class="grid-2col">
+        <!-- 賽程輸入 -->
+        <div>
+            <h3>📅 小組賽程 (輸入比分自動計算)</h3>
+            <div id="group-matches"></div>
+        </div>
+
+        <!-- 積分榜 -->
+        <div>
+            <h3>🏆 即時積分榜</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>排名</th>
+                        <th>隊伍</th>
+                        <th>場數</th>
+                        <th>勝</th>
+                        <th>和</th>
+                        <th>負</th>
+                        <th>得分</th>
+                        <th>失分</th>
+                        <th>分差</th>
+                        <th>積分</th>
+                    </tr>
+                </thead>
+                <tbody id="standings-body">
+                    <!-- JS 動態生成 -->
+                </tbody>
+            </table>
+            <p style="font-size: 0.8em; color: #666; margin-top: 5px;">* 同分將依次按「分差 (得分-失分)」及「總得分」排序。</p>
+        </div>
+    </div>
+
+    <!-- 第三部分：決賽及季軍戰 -->
+    <h2>3. 決賽及名次賽 (兩節總和制)</h2>
+    <div class="rules-box">
+        <strong>⏱️ 決賽規則：</strong> 按小組積分排名分組（第一 vs 第二 爭冠；第三 vs 第四 爭季）。<br>
+        分別打兩節（每節10分鐘），<strong>以兩節分數總和決定勝負方</strong>。
+    </div>
+
+    <div class="grid-2col">
+        <div>
+            <h3>📅 決賽輪賽程 (交替進行)</h3>
+            
+            <!-- 順序 1：第一 vs 第二 (第一節) -->
+            <div class="match-card">
+                <div>
+                    <div style="font-size: 0.85em; color: #666; font-weight: bold;">場次 1：冠軍戰 (第一節 - 10分鐘)</div>
+                    <div class="match-teams" style="margin-top: 5px;">
+                        <span class="rank1-name" style="color: var(--primary);">第一名</span>
+                        <input type="number" id="f1_q1_t1" class="score-input" min="0" oninput="calcFinals()">
+                        <span>vs</span>
+                        <input type="number" id="f1_q1_t2" class="score-input" min="0" oninput="calcFinals()">
+                        <span class="rank2-name" style="color: var(--primary);">第二名</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 順序 2：第三 vs 第四 (第一節) -->
+            <div class="match-card">
+                <div>
+                    <div style="font-size: 0.85em; color: #666; font-weight: bold;">場次 2：季軍戰 (第一節 - 10分鐘)</div>
+                    <div class="match-teams" style="margin-top: 5px;">
+                        <span class="rank3-name" style="color: #28a745;">第三名</span>
+                        <input type="number" id="f2_q1_t1" class="score-input" min="0" oninput="calcFinals()">
+                        <span>vs</span>
+                        <input type="number" id="f2_q1_t2" class="score-input" min="0" oninput="calcFinals()">
+                        <span class="rank4-name" style="color: #28a745;">第四名</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 順序 3：第一 vs 第二 (第二節) -->
+            <div class="match-card">
+                <div>
+                    <div style="font-size: 0.85em; color: #666; font-weight: bold;">場次 3：冠軍戰 (第二節 - 10分鐘)</div>
+                    <div class="match-teams" style="margin-top: 5px;">
+                        <span class="rank1-name" style="color: var(--primary);">第一名</span>
+                        <input type="number" id="f1_q2_t1" class="score-input" min="0" oninput="calcFinals()">
+                        <span>vs</span>
+                        <input type="number" id="f1_q2_t2" class="score-input" min="0" oninput="calcFinals()">
+                        <span class="rank2-name" style="color: var(--primary);">第二名</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 順序 4：第三 vs 第四 (第二節) -->
+            <div class="match-card">
+                <div>
+                    <div style="font-size: 0.85em; color: #666; font-weight: bold;">場次 4：季軍戰 (第二節 - 10分鐘)</div>
+                    <div class="match-teams" style="margin-top: 5px;">
+                        <span class="rank3-name" style="color: #28a745;">第三名</span>
+                        <input type="number" id="f2_q2_t1" class="score-input" min="0" oninput="calcFinals()">
+                        <span>vs</span>
+                        <input type="number" id="f2_q2_t2" class="score-input" min="0" oninput="calcFinals()">
+                        <span class="rank4-name" style="color: #28a745;">第四名</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 總分結算 -->
+        <div>
+            <h3>🏅 最終成績結算</h3>
+            
+            <div class="finals-summary">
+                <h4>👑 冠軍戰總比分 (<span class="rank1-name">第一名</span> vs <span class="rank2-name">第二名</span>)</h4>
+                <div style="font-size: 1.5em; font-weight: bold; margin: 10px 0;">
+                    <span id="f1_total_t1">0</span> : <span id="f1_total_t2">0</span>
+                </div>
+                <div class="winner-announcement" id="champ-winner">等待比賽結果...</div>
+            </div>
+
+            <div class="finals-summary" style="background: #f4fbf7; border-color: #c3e6cb;">
+                <h4>🥉 季軍戰總比分 (<span class="rank3-name">第三名</span> vs <span class="rank4-name">第四名</span>)</h4>
+                <div style="font-size: 1.5em; font-weight: bold; margin: 10px 0;">
+                    <span id="f2_total_t1">0</span> : <span id="f2_total_t2">0</span>
+                </div>
+                <div class="winner-announcement" id="third-winner" style="color: #28a745;">等待比賽結果...</div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    // 狀態管理
+    let players = []; // { id, name, team }
+    const teams = ['A', 'B', 'C', 'D'];
+    
+    // 小組賽程設定
+    const groupSchedule = [
+        { id: 1, t1: 'A', t2: 'B', s1: '', s2: '' },
+        { id: 2, t1: 'C', t2: 'D', s1: '', s2: '' },
+        { id: 3, t1: 'A', t2: 'D', s1: '', s2: '' },
+        { id: 4, t1: 'C', t2: 'B', s1: '', s2: '' },
+        { id: 5, t1: 'A', t2: 'C', s1: '', s2: '' },
+        { id: 6, t1: 'B', t2: 'D', s1: '', s2: '' }
+    ];
+
+    // 初始化網頁
+    window.onload = function() {
+        loadDefaultPlayers();
+        renderGroupMatches();
+        updateStandings();
+    };
+
+    // 載入你提供的預設名單 (1-10號為真實名單，11-20為補充測試名單)
+    function loadDefaultPlayers() {
+        const defaultList = 
+`1.TK
+2.Yan
+3.翔宇
+4.黎栢軒
+5.kenny
+6.kenny fd
+7.kenny fd
+8.kin
+9.Dennis
+10.Derek
+11.球員11
+12.球員12
+13.球員13
+14.球員14
+15.球員15
+16.球員16
+17.球員17
+18.球員18
+19.球員19
+20.球員20`;
+        document.getElementById('playerInput').value = defaultList;
+        loadPlayers();
+    }
+
+    // 智慧型解析並載入球員至待分發區
+    function loadPlayers() {
+        const rawText = document.getElementById('playerInput').value;
+        const stripNum = document.getElementById('stripNumbers').checked;
+
+        // 1. 先以「換行」或「逗號」分割 (保留名字中間的空白，例如 kenny fd)
+        let rawLines = rawText.split(/[\n,、]+/).map(s => s.trim()).filter(s => s !== "");
+
+        // 如果用家是一整行沒有換行，例如 "1.TK 2.Yan 3.翔宇"，進行特別處理
+        if (rawLines.length === 1 && /\d+[\.\、\s]/.test(rawLines[0])) {
+            rawLines = rawLines[0].split(/(?=\b\d+[\.\、\s])/).map(s => s.trim()).filter(s => s !== "");
+        }
+
+        if (rawLines.length === 0) {
+            alert("請先輸入球員名單！");
+            return;
+        }
+
+        let parsedList = [];
+        rawLines.forEach((line, idx) => {
+            // 偵測開頭是否為「數字 + 點/頓號/括號/空格」，例如 "1.TK" 或 "10. Derek"
+            const match = line.match(/^(\d+)[\.\、\)\s]+(.*)$/);
+            if (match) {
+                const num = match[1];
+                const cleanName = match[2].trim();
+                // 若只寫了 "11." 沒寫名字，自動補上 "球員11"
+                parsedList.push({
+                    num: num,
+                    cleanName: cleanName || `球員${num}`,
+                    fullText: line
+                });
+            } else {
+                parsedList.push({
+                    num: idx + 1,
+                    cleanName: line,
+                    fullText: line
+                });
+            }
+        });
+
+        if (parsedList.length > 20) {
+            alert(`系統偵測到 ${parsedList.length} 位球員，只會截取前 20 位。`);
+            parsedList = parsedList.slice(0, 20);
+        }
+
+        // 統計 cleanName 出現次數，用來處理同名問題 (例如兩個 kenny fd)
+        let nameCounts = {};
+        parsedList.forEach(p => {
+            nameCounts[p.cleanName] = (nameCounts[p.cleanName] || 0) + 1;
+        });
+
+        // 決定最終顯示名稱
+        players = parsedList.map((p, idx) => {
+            let finalName = p.fullText;
+            if (stripNum) {
+                // 如果選擇去除編號，但遇到同名球員 (如 kenny fd)，自動在後面加上編號以作識別
+                if (nameCounts[p.cleanName] > 1) {
+                    finalName = `${p.cleanName} (${p.num})`;
+                } else {
+                    finalName = p.cleanName;
+                }
+            }
+            return {
+                id: 'p_' + idx + '_' + Date.now(),
+                name: finalName,
+                team: 'unassigned'
+            };
+        });
+
+        renderTeams();
+    }
+
+    // 重設所有球員回待分發區
+    function resetTeams() {
+        players.forEach(p => p.team = 'unassigned');
+        renderTeams();
+    }
+
+    // 隨機分隊 (每隊5人)
+    function randomAssign() {
+        if (players.length === 0) {
+            loadPlayers();
+        }
+        // 洗牌演算法 (Fisher-Yates)
+        let shuffled = [...players];
+        for (let i = shuffled.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+        }
+
+        shuffled.forEach((p, index) => {
+            if (index < 5) p.team = 'A';
+            else if (index < 10) p.team = 'B';
+            else if (index < 15) p.team = 'C';
+            else if (index < 20) p.team = 'D';
+            else p.team = 'unassigned';
+        });
+
+        renderTeams();
+    }
+
+    // 渲染分隊畫面
+    function renderTeams() {
+        const zones = ['unassigned', 'A', 'B', 'C', 'D'];
+        
+        zones.forEach(zone => {
+            const listEl = document.getElementById(`list-${zone}`);
+            const boxEl = document.getElementById(`box-${zone}`);
+            const countEl = document.getElementById(`count-${zone}`);
+            listEl.innerHTML = '';
+
+            const zonePlayers = players.filter(p => p.team === zone);
+            
+            // 更新人數顯示與樣式
+            if (zone === 'unassigned') {
+                countEl.innerText = `${zonePlayers.length} 人`;
+            } else {
+                countEl.innerText = `${zonePlayers.length}/5`;
+                if (zonePlayers.length === 5) {
+                    boxEl.classList.add('full');
+                } else {
+                    boxEl.classList.remove('full');
+                }
+            }
+
+            // 建立球員卡片
+            zonePlayers.forEach(p => {
+                const item = document.createElement('div');
+                item.className = 'player-item';
+                item.draggable = true;
+                item.id = p.id;
+                item.ondragstart = (e) => drag(e, p.id);
+
+                // 手機版快速切換選單
+                const selectHTML = `
+                    <select class="team-select-mobile" onchange="movePlayer('${p.id}', this.value)">
+                        <option value="unassigned" ${p.team === 'unassigned' ? 'selected' : ''}>待分</option>
+                        <option value="A" ${p.team === 'A' ? 'selected' : ''}>A隊</option>
+                        <option value="B" ${p.team === 'B' ? 'selected' : ''}>B隊</option>
+                        <option value="C" ${p.team === 'C' ? 'selected' : ''}>C隊</option>
+                        <option value="D" ${p.team === 'D' ? 'selected' : ''}>D隊</option>
+                    </select>
+                `;
+
+                item.innerHTML = `<span>👤 ${p.name}</span> ${selectHTML}`;
+                listEl.appendChild(item);
+            });
+        });
+    }
+
+    // 拖拉功能實作
+    function allowDrop(ev) {
+        ev.preventDefault();
+    }
+
+    function drag(ev, playerId) {
+        ev.dataTransfer.setData("text/plain", playerId);
+    }
+
+    function drop(ev, targetTeam) {
+        ev.preventDefault();
+        const playerId = ev.dataTransfer.getData("text/plain");
+        movePlayer(playerId, targetTeam);
+    }
+
+    function movePlayer(playerId, targetTeam) {
+        const player = players.find(p => p.id === playerId);
+        if (!player || player.team === targetTeam) return;
+
+        // 檢查目標隊伍是否已滿 5 人
+        if (targetTeam !== 'unassigned') {
+            const currentCount = players.filter(p => p.team === targetTeam).length;
+            if (currentCount >= 5) {
+                alert(`Team ${targetTeam} 已經滿 5 人了！請先移出球員或選擇其他隊伍。`);
+                renderTeams(); // 重置下拉選單狀態
+                return;
+            }
+        }
+
+        player.team = targetTeam;
+        renderTeams();
+    }
+
+    // 渲染小組賽程
+    function renderGroupMatches() {
+        const container = document.getElementById('group-matches');
+        container.innerHTML = '';
+
+        groupSchedule.forEach((m, index) => {
+            const card = document.createElement('div');
+            card.className = 'match-card';
+            card.innerHTML = `
+                <div style="font-weight:bold; color:#666;">場次 ${index + 1}</div>
+                <div class="match-teams">
+                    <span>Team ${m.t1}</span>
+                    <input type="number" class="score-input" min="0" max="99" value="${m.s1}" 
+                           oninput="updateMatchScore(${index}, 's1', this.value)">
+                    <span>vs</span>
+                    <input type="number" class="score-input" min="0" max="99" value="${m.s2}" 
+                           oninput="updateMatchScore(${index}, 's2', this.value)">
+                    <span>Team ${m.t2}</span>
+                </div>
+                <div class="match-status" id="match-status-${index}">未開始</div>
+            `;
+            container.appendChild(card);
+        });
+    }
+
+    // 更新小組賽比分
+    function updateMatchScore(matchIndex, teamKey, value) {
+        groupSchedule[matchIndex][teamKey] = value;
+        updateStandings();
+    }
+
+    // 計算並更新積分榜
+    function updateStandings() {
+        let stats = {
+            'A': { team: 'A', played: 0, w: 0, d: 0, l: 0, pf: 0, pa: 0, diff: 0, pts: 0 },
+            'B': { team: 'B', played: 0, w: 0, d: 0, l: 0, pf: 0, pa: 0, diff: 0, pts: 0 },
+            'C': { team: 'C', played: 0, w: 0, d: 0, l: 0, pf: 0, pa: 0, diff: 0, pts: 0 },
+            'D': { team: 'D', played: 0, w: 0, d: 0, l: 0, pf: 0, pa: 0, diff: 0, pts: 0 }
+        };
+
+        groupSchedule.forEach((m, idx) => {
+            const statusEl = document.getElementById(`match-status-${idx}`);
+            const s1 = parseInt(m.s1, 10);
+            const s2 = parseInt(m.s2, 10);
+
+            if (!isNaN(s1) && !isNaN(s2)) {
+                stats[m.t1].played++;
+                stats[m.t2].played++;
+                stats[m.t1].pf += s1;
+                stats[m.t1].pa += s2;
+                stats[m.t2].pf += s2;
+                stats[m.t2].pa += s1;
+
+                if (s1 > s2) {
+                    stats[m.t1].w++;
+                    stats[m.t1].pts += 2;
+                    stats[m.t2].l++;
+                    statusEl.innerText = `Team ${m.t1} 勝 (+2)`;
+                    statusEl.className = 'match-status status-win';
+                } else if (s2 > s1) {
+                    stats[m.t2].w++;
+                    stats[m.t2].pts += 2;
+                    stats[m.t1].l++;
+                    statusEl.innerText = `Team ${m.t2} 勝 (+2)`;
+                    statusEl.className = 'match-status status-win';
+                } else {
+                    stats[m.t1].d++;
+                    stats[m.t2].d++;
+                    stats[m.t1].pts += 1;
+                    stats[m.t2].pts += 1;
+                    statusEl.innerText = `和局 (各+1)`;
+                    statusEl.className = 'match-status status-draw';
+                }
+            } else {
+                statusEl.innerText = '未完場';
+                statusEl.className = 'match-status';
+            }
+        });
+
+        // 計算分差並轉換為陣列排序
+        let standingsArray = Object.values(stats).map(s => {
+            s.diff = s.pf - s.pa;
+            return s;
+        });
+
+        // 排序邏輯：1.積分 2.正負分差 3.總得分
+        standingsArray.sort((a, b) => {
+            if (b.pts !== a.pts) return b.pts - a.pts;
+            if (b.diff !== a.diff) return b.diff - a.diff;
+            return b.pf - a.pf;
+        });
+
+        // 渲染表格
+        const tbody = document.getElementById('standings-body');
+        tbody.innerHTML = '';
+        standingsArray.forEach((s, index) => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td><strong>${index + 1}</strong></td>
+                <td><strong>Team ${s.team}</strong></td>
+                <td>${s.played}</td>
+                <td>${s.w}</td>
+                <td>${s.d}</td>
+                <td>${s.l}</td>
+                <td>${s.pf}</td>
+                <td>${s.pa}</td>
+                <td>${s.diff > 0 ? '+' + s.diff : s.diff}</td>
+                <td style="font-weight:bold; color:var(--primary); font-size:1.1em;">${s.pts}</td>
+            `;
+            tbody.appendChild(tr);
+        });
+
+        // 自動更新決賽隊伍名稱顯示
+        updateFinalsTeams(standingsArray);
+    }
+
+    // 更新決賽對陣名稱
+    function updateFinalsTeams(standings) {
+        const r1 = `Team ${standings[0].team} (第1)`;
+        const r2 = `Team ${standings[1].team} (第2)`;
+        const r3 = `Team ${standings[2].team} (第3)`;
+        const r4 = `Team ${standings[3].team} (第4)`;
+
+        document.querySelectorAll('.rank1-name').forEach(el => el.innerText = r1);
+        document.querySelectorAll('.rank2-name').forEach(el => el.innerText = r2);
+        document.querySelectorAll('.rank3-name').forEach(el => el.innerText = r3);
+        document.querySelectorAll('.rank4-name').forEach(el => el.innerText = r4);
+
+        // 儲存當前排名供結算顯示使用
+        window.currentRankTeams = {
+            1: `Team ${standings[0].team}`,
+            2: `Team ${standings[1].team}`,
+            3: `Team ${standings[2].team}`,
+            4: `Team ${standings[3].team}`
+        };
+
+        calcFinals();
+    }
+
+    // 計算決賽及季軍戰兩節總和
+    function calcFinals() {
+        const getVal = (id) => {
+            const val = parseInt(document.getElementById(id).value, 10);
+            return isNaN(val) ? null : val;
+        };
+
+        // 冠軍戰 (第一 vs 第二)
+        const f1_q1_t1 = getVal('f1_q1_t1');
+        const f1_q1_t2 = getVal('f1_q1_t2');
+        const f1_q2_t1 = getVal('f1_q2_t1');
+        const f1_q2_t2 = getVal('f1_q2_t2');
+
+        const total_f1_t1 = (f1_q1_t1 || 0) + (f1_q2_t1 || 0);
+        const total_f1_t2 = (f1_q1_t2 || 0) + (f1_q2_t2 || 0);
+
+        document.getElementById('f1_total_t1').innerText = total_f1_t1;
+        document.getElementById('f1_total_t2').innerText = total_f1_t2;
+
+        const champEl = document.getElementById('champ-winner');
+        const t1Name = window.currentRankTeams ? window.currentRankTeams[1] : '第一名';
+        const t2Name = window.currentRankTeams ? window.currentRankTeams[2] : '第二名';
+
+        if (f1_q1_t1 !== null && f1_q1_t2 !== null && f1_q2_t1 !== null && f1_q2_t2 !== null) {
+            if (total_f1_t1 > total_f1_t2) {
+                champEl.innerText = `🎉 總冠軍：${t1Name} ｜ 亞軍：${t2Name}`;
+            } else if (total_f1_t2 > total_f1_t1) {
+                champEl.innerText = `🎉 總冠軍：${t2Name} ｜ 亞軍：${t1Name}`;
+            } else {
+                champEl.innerText = `⚖️ 兩節總分平手 (${total_f1_t1}:${total_f1_t2})，需進行加時賽！`;
+            }
+        } else if (f1_q1_t1 !== null || f1_q1_t2 !== null || f1_q2_t1 !== null || f1_q2_t2 !== null) {
+            champEl.innerText = `比賽進行中... (目前總分 ${total_f1_t1}:${total_f1_t2})`;
+        } else {
+            champEl.innerText = `等待輸入兩節比分...`;
+        }
+
+        // 季軍戰 (第三 vs 第四)
+        const f2_q1_t1 = getVal('f2_q1_t1');
+        const f2_q1_t2 = getVal('f2_q1_t2');
+        const f2_q2_t1 = getVal('f2_q2_t1');
+        const f2_q2_t2 = getVal('f2_q2_t2');
+
+        const total_f2_t1 = (f2_q1_t1 || 0) + (f2_q2_t1 || 0);
+        const total_f2_t2 = (f2_q1_t2 || 0) + (f2_q2_t2 || 0);
+
+        document.getElementById('f2_total_t1').innerText = total_f2_t1;
+        document.getElementById('f2_total_t2').innerText = total_f2_t2;
+
+        const thirdEl = document.getElementById('third-winner');
+        const t3Name = window.currentRankTeams ? window.currentRankTeams[3] : '第三名';
+        const t4Name = window.currentRankTeams ? window.currentRankTeams[4] : '第四名';
+
+        if (f2_q1_t1 !== null && f2_q1_t2 !== null && f2_q2_t1 !== null && f2_q2_t2 !== null) {
+            if (total_f2_t1 > total_f2_t2) {
+                thirdEl.innerText = `🎉 季軍：${t3Name} ｜ 殿軍：${t4Name}`;
+            } else if (total_f2_t2 > total_f2_t1) {
+                thirdEl.innerText = `🎉 季軍：${t4Name} ｜ 殿軍：${t3Name}`;
+            } else {
+                thirdEl.innerText = `⚖️ 兩節總分平手 (${total_f2_t1}:${total_f2_t2})，需進行加時賽！`;
+            }
+        } else if (f2_q1_t1 !== null || f2_q1_t2 !== null || f2_q2_t1 !== null || f2_q2_t2 !== null) {
+            thirdEl.innerText = `比賽進行中... (目前總分 ${total_f2_t1}:${total_f2_t2})`;
+        } else {
+            thirdEl.innerText = `等待輸入兩節比分...`;
+        }
+    }
+</script>
+
+</body>
+</html>
