@@ -282,7 +282,7 @@
             to { opacity: 1; transform: translateY(0); }
         }
 
-        /* 賽程與積分榜：電腦版預設左右雙欄 */
+        /* 賽程與排名榜：電腦版預設左右雙欄 */
         .grid-2col {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -341,7 +341,7 @@
         .status-win { background: #d4edda; color: #155724; font-weight: bold; }
         .status-draw { background: #fff3cd; color: #856404; font-weight: bold; }
 
-        /* 積分表格外層 */
+        /* 排名表格外層 */
         .table-responsive {
             width: 100%;
             overflow-x: auto;
@@ -534,23 +534,23 @@
         <textarea id="whatsappOutput" style="height: 150px; margin-bottom: 0; font-size: 14px; background: #ffffff;" placeholder="分隊完成後，點擊上方綠色按鈕即可自動產生 WhatsApp 格式名單並複製..."></textarea>
     </div>
 
-    <!-- 第二部分：單循環小組賽與積分榜 -->
-    <h2>2. 小組單循環賽 & 積分榜</h2>
+    <!-- 第二部分：單循環小組賽與排名榜 -->
+    <h2>2. 小組單循環賽 & 累計得分排名榜</h2>
     <div class="rules-box">
-        <strong>⏱️ 小組賽規則：</strong> 10分鐘一節 或 先到15分（10分鐘完場未達15分，則較高分為勝方）。<br>
-        <strong>📊 計分方式：</strong> 勝方 <strong>+2積分</strong> ｜ 和局 <strong>+1積分</strong> ｜ 負方 <strong>0積分</strong>。
+        <strong>⏱️ 小組賽規則：</strong> 10分鐘一節（不設15分上限）。<br>
+        <strong>📊 排名方式：</strong> 以每隊 <strong>累計總得分</strong> 高低決定排名！
     </div>
 
     <div class="grid-2col">
         <!-- 賽程輸入 -->
         <div>
-            <h3>📅 小組賽程 (輸入比分自動儲存及計算)</h3>
+            <h3>📅 小組賽程 (10分鐘一節，輸入比分自動儲存及計算)</h3>
             <div id="group-matches"></div>
         </div>
 
-        <!-- 積分榜 -->
+        <!-- 排名榜 -->
         <div>
-            <h3>🏆 即時積分榜</h3>
+            <h3>🏆 小組排名榜 (按累計得分排序)</h3>
             <div class="table-responsive">
                 <table>
                     <thead>
@@ -561,10 +561,9 @@
                             <th>勝</th>
                             <th>和</th>
                             <th>負</th>
-                            <th>得分</th>
+                            <th>累計得分</th>
                             <th>失分</th>
                             <th>分差</th>
-                            <th>積分</th>
                         </tr>
                     </thead>
                     <tbody id="standings-body">
@@ -572,15 +571,15 @@
                     </tbody>
                 </table>
             </div>
-            <p style="font-size: 0.8em; color: #666; margin-top: 6px;">* 同分將依次按「分差 (得分-失分)」及「總得分」排序。</p>
+            <p style="font-size: 0.8em; color: #666; margin-top: 6px;">* 排名優先按「累計得分」排序；若同分則依次按「分差 (得分-失分)」及「勝場數」排序。</p>
         </div>
     </div>
 
     <!-- 第三部分：決賽及季軍戰 -->
     <h2>3. 決賽及名次賽 (兩節總和制)</h2>
     <div class="rules-box">
-        <strong>⏱️ 決賽規則：</strong> 按小組積分排名分組（第一 vs 第二 爭冠；第三 vs 第四 爭季）。<br>
-        分別打兩節（每節10分鐘），<strong>以兩節分數總和決定勝負方</strong>。
+        <strong>⏱️ 決賽規則：</strong> 按小組累計得分排名分組（第一 vs 第二 爭冠；第三 vs 第四 爭季）。<br>
+        每場 <strong>10分鐘一節</strong>，交替進行共打兩節，<strong>以兩節總和得分最高為勝方</strong>。
     </div>
 
     <div class="grid-2col">
@@ -590,7 +589,7 @@
             <!-- 順序 1：第一 vs 第二 (第一節) -->
             <div class="match-card">
                 <div style="width: 100%;">
-                    <div style="font-size: 0.85em; color: #666; font-weight: bold; margin-bottom: 6px;">場次 1：冠軍戰 (第一節 - 10分鐘)</div>
+                    <div style="font-size: 0.85em; color: #666; font-weight: bold; margin-bottom: 6px;">場次 1：第一 vs 第二 (第一節 - 10分鐘)</div>
                     <div class="match-teams">
                         <span class="rank1-name" style="color: var(--primary);">第一名</span>
                         <input type="number" inputmode="numeric" id="f1_q1_t1" class="score-input" min="0" placeholder="0" oninput="onFinalsInput()">
@@ -604,7 +603,7 @@
             <!-- 順序 2：第三 vs 第四 (第一節) -->
             <div class="match-card">
                 <div style="width: 100%;">
-                    <div style="font-size: 0.85em; color: #666; font-weight: bold; margin-bottom: 6px;">場次 2：季軍戰 (第一節 - 10分鐘)</div>
+                    <div style="font-size: 0.85em; color: #666; font-weight: bold; margin-bottom: 6px;">場次 2：第三 vs 第四 (第一節 - 10分鐘)</div>
                     <div class="match-teams">
                         <span class="rank3-name" style="color: #28a745;">第三名</span>
                         <input type="number" inputmode="numeric" id="f2_q1_t1" class="score-input" min="0" placeholder="0" oninput="onFinalsInput()">
@@ -618,7 +617,7 @@
             <!-- 順序 3：第一 vs 第二 (第二節) -->
             <div class="match-card">
                 <div style="width: 100%;">
-                    <div style="font-size: 0.85em; color: #666; font-weight: bold; margin-bottom: 6px;">場次 3：冠軍戰 (第二節 - 10分鐘)</div>
+                    <div style="font-size: 0.85em; color: #666; font-weight: bold; margin-bottom: 6px;">場次 3：第一 vs 第二 (第二節 - 10分鐘)</div>
                     <div class="match-teams">
                         <span class="rank1-name" style="color: var(--primary);">第一名</span>
                         <input type="number" inputmode="numeric" id="f1_q2_t1" class="score-input" min="0" placeholder="0" oninput="onFinalsInput()">
@@ -632,7 +631,7 @@
             <!-- 順序 4：第三 vs 第四 (第二節) -->
             <div class="match-card">
                 <div style="width: 100%;">
-                    <div style="font-size: 0.85em; color: #666; font-weight: bold; margin-bottom: 6px;">場次 4：季軍戰 (第二節 - 10分鐘)</div>
+                    <div style="font-size: 0.85em; color: #666; font-weight: bold; margin-bottom: 6px;">場次 4：第三 vs 第四 (第二節 - 10分鐘)</div>
                     <div class="match-teams">
                         <span class="rank3-name" style="color: #28a745;">第三名</span>
                         <input type="number" inputmode="numeric" id="f2_q2_t1" class="score-input" min="0" placeholder="0" oninput="onFinalsInput()">
@@ -646,10 +645,10 @@
 
         <!-- 總分結算 -->
         <div>
-            <h3>🏅 最終成績結算</h3>
+            <h3>🏅 最終成績結算 (兩節總和)</h3>
             
             <div class="finals-summary">
-                <h4>👑 冠軍戰總比分 (<span class="rank1-name">第一名</span> vs <span class="rank2-name">第二名</span>)</h4>
+                <h4>👑 冠軍戰兩節總和 (<span class="rank1-name">第一名</span> vs <span class="rank2-name">第二名</span>)</h4>
                 <div style="font-size: 1.6em; font-weight: bold; margin: 8px 0;">
                     <span id="f1_total_t1">0</span> : <span id="f1_total_t2">0</span>
                 </div>
@@ -657,7 +656,7 @@
             </div>
 
             <div class="finals-summary" style="background: #f4fbf7; border-color: #c3e6cb;">
-                <h4>🥉 季軍戰總比分 (<span class="rank3-name">第三名</span> vs <span class="rank4-name">第四名</span>)</h4>
+                <h4>🥉 季軍戰兩節總和 (<span class="rank3-name">第三名</span> vs <span class="rank4-name">第四名</span>)</h4>
                 <div style="font-size: 1.6em; font-weight: bold; margin: 8px 0;">
                     <span id="f2_total_t1">0</span> : <span id="f2_total_t2">0</span>
                 </div>
@@ -670,7 +669,7 @@
 </div>
 
 <script>
-    const STORAGE_KEY = 'bball_system_responsive_v3';
+    const STORAGE_KEY = 'bball_system_responsive_v4';
 
     // 狀態管理：pos 屬性記錄球員位置 ('', 'PG', 'SG', 'SF', 'PF', 'C')
     let players = []; // { id, name, team, locked, pos }
@@ -678,14 +677,14 @@
     const posOrder = { 'PG': 1, 'SG': 2, 'SF': 3, 'PF': 4, 'C': 5, '': 6 };
     let currentStandings = [];
     
-    // 小組賽程設定
+    // 小組賽程設定（已按最新順序更新：A vs B, C vs D, A vs C, B vs D, A vs D, B vs C）
     let groupSchedule = [
         { id: 1, t1: 'A', t2: 'B', s1: '', s2: '' },
         { id: 2, t1: 'C', t2: 'D', s1: '', s2: '' },
-        { id: 3, t1: 'A', t2: 'D', s1: '', s2: '' },
-        { id: 4, t1: 'C', t2: 'B', s1: '', s2: '' },
-        { id: 5, t1: 'A', t2: 'C', s1: '', s2: '' },
-        { id: 6, t1: 'B', t2: 'D', s1: '', s2: '' }
+        { id: 3, t1: 'A', t2: 'C', s1: '', s2: '' },
+        { id: 4, t1: 'B', t2: 'D', s1: '', s2: '' },
+        { id: 5, t1: 'A', t2: 'D', s1: '', s2: '' },
+        { id: 6, t1: 'B', t2: 'C', s1: '', s2: '' }
     ];
 
     const finalInputIds = ['f1_q1_t1', 'f1_q1_t2', 'f2_q1_t1', 'f2_q1_t2', 'f1_q2_t1', 'f1_q2_t2', 'f2_q2_t1', 'f2_q2_t2'];
@@ -1105,7 +1104,7 @@
     }
 
     // =========================================================
-    // 📲 WhatsApp 文字生成及複製功能 (自動包含位置)
+    // 📲 WhatsApp 文字生成及複製功能 (自動包含位置及最新累計得分戰果)
     // =========================================================
     function buildWhatsAppText(includeResults) {
         const teamIcons = { A: '🔴', B: '🔵', C: '🟢', D: '🟡' };
@@ -1138,10 +1137,10 @@
 
         if (includeResults) {
             lines.push('━━━━━━━━━━━━━━');
-            lines.push('📊 *小組賽積分榜*');
+            lines.push('📊 *小組賽排名 (按累計得分)*');
             currentStandings.forEach((s, idx) => {
                 const diffStr = s.diff > 0 ? `+${s.diff}` : s.diff;
-                lines.push(`${idx + 1}. *Team ${s.team}* ｜ ${s.pts}分 (${s.w}勝${s.d}和${s.l}負 | 分差${diffStr})`);
+                lines.push(`${idx + 1}. *Team ${s.team}* ｜ 累計 *${s.pf}分* (${s.w}勝${s.d}和${s.l}負 | 分差${diffStr})`);
             });
             lines.push('');
 
@@ -1152,7 +1151,7 @@
             const f2_t1 = document.getElementById('f2_total_t1').innerText;
             const f2_t2 = document.getElementById('f2_total_t2').innerText;
 
-            lines.push('🏅 *決賽及名次賽結果*');
+            lines.push('🏅 *決賽及名次賽結果 (兩節總和)*');
             lines.push(`👑 冠軍戰總分 (${f1_t1}:${f1_t2})：${champText}`);
             lines.push(`🥉 季軍戰總分 (${f2_t1}:${f2_t2})：${thirdText}`);
         }
@@ -1214,10 +1213,10 @@
                 </div>
                 <div class="match-teams">
                     <span>Team ${m.t1}</span>
-                    <input type="number" inputmode="numeric" class="score-input" min="0" max="99" placeholder="0" value="${m.s1}" 
+                    <input type="number" inputmode="numeric" class="score-input" min="0" max="999" placeholder="0" value="${m.s1}" 
                            oninput="updateMatchScore(${index}, 's1', this.value)">
                     <span>vs</span>
-                    <input type="number" inputmode="numeric" class="score-input" min="0" max="99" placeholder="0" value="${m.s2}" 
+                    <input type="number" inputmode="numeric" class="score-input" min="0" max="999" placeholder="0" value="${m.s2}" 
                            oninput="updateMatchScore(${index}, 's2', this.value)">
                     <span>Team ${m.t2}</span>
                 </div>
@@ -1234,13 +1233,13 @@
         saveToStorage();
     }
 
-    // 計算並更新積分榜
+    // 計算並更新排名榜（以每隊累計得分 pf 決定排名）
     function updateStandings() {
         let stats = {
-            'A': { team: 'A', played: 0, w: 0, d: 0, l: 0, pf: 0, pa: 0, diff: 0, pts: 0 },
-            'B': { team: 'B', played: 0, w: 0, d: 0, l: 0, pf: 0, pa: 0, diff: 0, pts: 0 },
-            'C': { team: 'C', played: 0, w: 0, d: 0, l: 0, pf: 0, pa: 0, diff: 0, pts: 0 },
-            'D': { team: 'D', played: 0, w: 0, d: 0, l: 0, pf: 0, pa: 0, diff: 0, pts: 0 }
+            'A': { team: 'A', played: 0, w: 0, d: 0, l: 0, pf: 0, pa: 0, diff: 0 },
+            'B': { team: 'B', played: 0, w: 0, d: 0, l: 0, pf: 0, pa: 0, diff: 0 },
+            'C': { team: 'C', played: 0, w: 0, d: 0, l: 0, pf: 0, pa: 0, diff: 0 },
+            'D': { team: 'D', played: 0, w: 0, d: 0, l: 0, pf: 0, pa: 0, diff: 0 }
         };
 
         groupSchedule.forEach((m, idx) => {
@@ -1258,27 +1257,23 @@
 
                 if (s1 > s2) {
                     stats[m.t1].w++;
-                    stats[m.t1].pts += 2;
                     stats[m.t2].l++;
                     if (statusEl) {
-                        statusEl.innerText = `Team ${m.t1} 勝 (+2)`;
+                        statusEl.innerText = `Team ${m.t1} 勝`;
                         statusEl.className = 'match-status status-win';
                     }
                 } else if (s2 > s1) {
                     stats[m.t2].w++;
-                    stats[m.t2].pts += 2;
                     stats[m.t1].l++;
                     if (statusEl) {
-                        statusEl.innerText = `Team ${m.t2} 勝 (+2)`;
+                        statusEl.innerText = `Team ${m.t2} 勝`;
                         statusEl.className = 'match-status status-win';
                     }
                 } else {
                     stats[m.t1].d++;
                     stats[m.t2].d++;
-                    stats[m.t1].pts += 1;
-                    stats[m.t2].pts += 1;
                     if (statusEl) {
-                        statusEl.innerText = `和局 (各+1)`;
+                        statusEl.innerText = `平手`;
                         statusEl.className = 'match-status status-draw';
                     }
                 }
@@ -1295,10 +1290,11 @@
             return s;
         });
 
+        // 排序邏輯：1. 累計得分 (pf) ➔ 2. 分差 (diff) ➔ 3. 勝場數 (w)
         standingsArray.sort((a, b) => {
-            if (b.pts !== a.pts) return b.pts - a.pts;
+            if (b.pf !== a.pf) return b.pf - a.pf;
             if (b.diff !== a.diff) return b.diff - a.diff;
-            return b.pf - a.pf;
+            return b.w - a.w;
         });
 
         currentStandings = standingsArray;
@@ -1314,10 +1310,9 @@
                 <td>${s.w}</td>
                 <td>${s.d}</td>
                 <td>${s.l}</td>
-                <td>${s.pf}</td>
+                <td style="font-weight:bold; color:var(--primary); font-size:1.15em;">${s.pf}</td>
                 <td>${s.pa}</td>
                 <td>${s.diff > 0 ? '+' + s.diff : s.diff}</td>
-                <td style="font-weight:bold; color:var(--primary); font-size:1.1em;">${s.pts}</td>
             `;
             tbody.appendChild(tr);
         });
