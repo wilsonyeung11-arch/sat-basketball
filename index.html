@@ -26,7 +26,7 @@
             line-height: 1.5;
         }
         .container {
-            max-width: 1150px;
+            max-width: 1180px;
             margin: 0 auto;
             background: white;
             padding: 25px;
@@ -127,7 +127,7 @@
             border: 2px dashed #adb5bd;
             border-radius: 8px;
             padding: 10px;
-            min-height: 230px;
+            min-height: 240px;
             display: flex;
             flex-direction: column;
         }
@@ -145,7 +145,7 @@
         }
         .player-list {
             flex-grow: 1;
-            min-height: 160px;
+            min-height: 170px;
         }
         .player-item {
             background: white;
@@ -157,9 +157,10 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
+            gap: 4px;
             box-shadow: 0 1px 2px rgba(0,0,0,0.04);
             user-select: none;
-            font-size: 0.92rem;
+            font-size: 0.9rem;
             word-break: break-word;
             transition: background 0.15s, border-color 0.15s;
         }
@@ -172,18 +173,52 @@
             border-color: #fcc419;
             border-left: 4px solid #f59f00;
         }
+        .player-info {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            min-width: 0;
+            flex-grow: 1;
+        }
+        .player-name {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
         .player-actions {
             display: flex;
             align-items: center;
             gap: 4px;
             flex-shrink: 0;
         }
+
+        /* 🏀 球員位置選擇器樣式 */
+        .pos-select {
+            font-size: 12px;
+            padding: 2px 3px;
+            border-radius: 4px;
+            border: 1px solid #ced4da;
+            background-color: #f8f9fa;
+            color: #495057;
+            font-weight: bold;
+            cursor: pointer;
+            outline: none;
+            transition: all 0.15s;
+        }
+        .pos-select:hover { border-color: #adb5bd; }
+        /* 各位置專屬配色 */
+        .pos-select.pos-PG { background-color: #e7f5ff; color: #1971c2; border-color: #74c0fc; }
+        .pos-select.pos-SG { background-color: #f3f0ff; color: #6741d9; border-color: #b197fc; }
+        .pos-select.pos-SF { background-color: #ebfbee; color: #2f9e44; border-color: #8ce99a; }
+        .pos-select.pos-PF { background-color: #fff4e6; color: #e8590c; border-color: #ffc078; }
+        .pos-select.pos-C  { background-color: #fff5f5; color: #e03131; border-color: #ffa8a8; }
+
         .lock-btn {
             background: none;
             border: 1px solid transparent;
             cursor: pointer;
             font-size: 13px;
-            padding: 2px 5px;
+            padding: 2px 4px;
             border-radius: 4px;
             line-height: 1;
             opacity: 0.45;
@@ -199,8 +234,8 @@
         /* 手機版分隊下拉選單（電腦版隱藏） */
         .team-select-mobile {
             display: none;
-            font-size: 13px;
-            padding: 3px 5px;
+            font-size: 12px;
+            padding: 2px 4px;
             border-radius: 4px;
             border: 1px solid #ced4da;
             background-color: #fff;
@@ -361,7 +396,7 @@
             #list-unassigned {
                 min-height: 60px;
                 display: grid;
-                grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+                grid-template-columns: repeat(auto-fill, minmax(185px, 1fr));
                 gap: 6px;
             }
             #list-unassigned .player-item { margin-bottom: 0; }
@@ -380,11 +415,11 @@
             }
             .checkbox-label {
                 width: 100%;
-                margin-top: 4px;
+                margin-top: 2px;
             }
 
             .team-select-mobile { display: inline-block; }
-            .player-item { cursor: default; padding: 8px; font-size: 0.9rem; }
+            .player-item { cursor: default; padding: 7px 8px; font-size: 0.88rem; }
             .team-box { min-height: 170px; padding: 8px; }
             .player-list { min-height: 120px; }
 
@@ -413,7 +448,7 @@
             th, td { padding: 8px 4px; font-size: 0.85em; }
         }
 
-        @media (max-width: 400px) {
+        @media (max-width: 420px) {
             .teams-wrapper {
                 grid-template-columns: 1fr;
             }
@@ -431,21 +466,26 @@
     <!-- 第一部分：輸入名單與分隊 -->
     <h2>1. 球員名單及分隊 (每隊5人)</h2>
     <div>
-        <textarea id="playerInput" placeholder="請直接貼上接龍報名名單（支援 1.TK 這種編號格式，每行一人）..." oninput="saveToStorage()"></textarea>
+        <textarea id="playerInput" placeholder="請直接貼上接龍報名名單（支援 1.TK 或 1.TK (PG) 格式，每行一人）..." oninput="saveToStorage()"></textarea>
         
         <div class="options-bar">
             <button class="btn" onclick="loadPlayers()">📥 載入名單至待分區</button>
             <button class="btn" onclick="randomAssign()">🎲 隨機分隊 (保留📌固定隊員)</button>
             <button class="btn btn-secondary" onclick="loadDefaultPlayers()">📋 載入預設名單</button>
             <button class="btn btn-secondary" onclick="resetTeams()">🔄 重設全部分區</button>
-            
+        </div>
+        <div class="options-bar">
             <label class="checkbox-label">
                 <input type="checkbox" id="stripNumbers" checked onchange="loadPlayers()">
-                <span>自動去除開頭編號 (同名如 kenny fd 會自動標號區分)</span>
+                <span>自動去除開頭編號 (同名會自動標號區分)</span>
+            </label>
+            <label class="checkbox-label">
+                <input type="checkbox" id="balancePos" checked onchange="saveToStorage()">
+                <span>⚖️ 隨機分隊時盡量平均分配位置 (PG / SG / SF / PF / C)</span>
             </label>
         </div>
         <p style="font-size: 0.85em; color: #666; margin-top: 4px;">
-            💡 <b>固定隊員功能：</b>當你<b>人手拖拉</b>或<b>用選單指派</b>球員進隊伍後，該球員會自動標記為 <b>📌固定 (黃底)</b>。之後按「🎲 隨機分隊」只會隨機分配其他未固定的球員！點擊球員旁的 📌 可隨時解鎖。
+            💡 <b>位置與固定功能：</b>可在球員旁選擇位置（<b>PG/SG/SF/PF/C</b>，報名名單若有寫如 <code>1.TK (PG)</code> 也會自動識別）。人手拖拉或選單指派隊伍後會標記為 <b>📌固定 (黃底)</b>，按「🎲 隨機分隊」時只會抽未固定的球員！
         </p>
     </div>
 
@@ -479,7 +519,7 @@
         </div>
     </div>
 
-    <!-- 新增：WhatsApp 分隊文字生成與一鍵複製區 -->
+    <!-- WhatsApp 分隊文字生成與一鍵複製區 -->
     <div class="whatsapp-box">
         <div class="whatsapp-header">
             <div class="whatsapp-title">
@@ -491,7 +531,7 @@
                 <button class="btn btn-info" onclick="generateAndCopyWhatsApp(true)">🏆 生成並複製【分隊 + 最新戰果】</button>
             </div>
         </div>
-        <textarea id="whatsappOutput" style="height: 140px; margin-bottom: 0; font-size: 14px; background: #ffffff;" placeholder="分隊完成後，點擊上方綠色按鈕即可自動產生 WhatsApp 格式名單並複製..."></textarea>
+        <textarea id="whatsappOutput" style="height: 150px; margin-bottom: 0; font-size: 14px; background: #ffffff;" placeholder="分隊完成後，點擊上方綠色按鈕即可自動產生 WhatsApp 格式名單並複製..."></textarea>
     </div>
 
     <!-- 第二部分：單循環小組賽與積分榜 -->
@@ -630,12 +670,13 @@
 </div>
 
 <script>
-    const STORAGE_KEY = 'bball_system_responsive_v2';
+    const STORAGE_KEY = 'bball_system_responsive_v3';
 
-    // 狀態管理：locked 屬性記錄是否為人手固定隊員
-    let players = []; // { id, name, team, locked }
+    // 狀態管理：pos 屬性記錄球員位置 ('', 'PG', 'SG', 'SF', 'PF', 'C')
+    let players = []; // { id, name, team, locked, pos }
     const teamKeys = ['A', 'B', 'C', 'D'];
-    let currentStandings = []; // 儲存最新積分榜資料供 WhatsApp 輸出使用
+    const posOrder = { 'PG': 1, 'SG': 2, 'SF': 3, 'PF': 4, 'C': 5, '': 6 };
+    let currentStandings = [];
     
     // 小組賽程設定
     let groupSchedule = [
@@ -657,9 +698,13 @@
                 const parsed = JSON.parse(savedData);
                 document.getElementById('playerInput').value = parsed.rawText || '';
                 document.getElementById('stripNumbers').checked = parsed.stripNumbers !== false;
+                if (parsed.balancePos !== undefined) {
+                    document.getElementById('balancePos').checked = parsed.balancePos;
+                }
                 players = (parsed.players || []).map(p => ({
                     ...p,
-                    locked: !!p.locked
+                    locked: !!p.locked,
+                    pos: p.pos || ''
                 }));
                 if (parsed.groupSchedule) groupSchedule = parsed.groupSchedule;
                 
@@ -697,6 +742,7 @@
         const state = {
             rawText: document.getElementById('playerInput').value,
             stripNumbers: document.getElementById('stripNumbers').checked,
+            balancePos: document.getElementById('balancePos').checked,
             players: players,
             groupSchedule: groupSchedule,
             finals: finalsData
@@ -739,6 +785,19 @@
         loadPlayers();
     }
 
+    // 從字串結尾自動識別是否有寫位置，例如 "TK (PG)" 或 "Yan - C"
+    function extractPosition(str) {
+        const posRegex = /^(.*?)[\s\-\(\[\（【\/]+(PG|SG|SF|PF|C)[\)\]\）】]*$/i;
+        const match = str.trim().match(posRegex);
+        if (match && match[1].trim() !== '') {
+            return {
+                name: match[1].trim(),
+                pos: match[2].toUpperCase()
+            };
+        }
+        return { name: str.trim(), pos: '' };
+    }
+
     // 智慧型解析並載入球員至待分發區
     function loadPlayers() {
         const rawText = document.getElementById('playerInput').value;
@@ -755,24 +814,28 @@
             return;
         }
 
+        // 保留舊球員已設定的位置與鎖定狀態（如果名字相同）
+        let oldPlayerMap = {};
+        players.forEach(p => {
+            oldPlayerMap[p.name] = { pos: p.pos, team: p.team, locked: p.locked };
+        });
+
         let parsedList = [];
         rawLines.forEach((line, idx) => {
             const match = line.match(/^(\d+)[\.\、\)\s]+(.*)$/);
+            let num = idx + 1;
+            let bodyText = line;
             if (match) {
-                const num = match[1];
-                const cleanName = match[2].trim();
-                parsedList.push({
-                    num: num,
-                    cleanName: cleanName || `球員${num}`,
-                    fullText: line
-                });
-            } else {
-                parsedList.push({
-                    num: idx + 1,
-                    cleanName: line,
-                    fullText: line
-                });
+                num = match[1];
+                bodyText = match[2].trim() || `球員${num}`;
             }
+            const extracted = extractPosition(bodyText);
+            parsedList.push({
+                num: num,
+                cleanName: extracted.name,
+                detectedPos: extracted.pos,
+                fullText: line
+            });
         });
 
         if (parsedList.length > 20) {
@@ -794,11 +857,13 @@
                     finalName = p.cleanName;
                 }
             }
+            const prev = oldPlayerMap[finalName];
             return {
                 id: 'p_' + idx + '_' + Date.now(),
                 name: finalName,
                 team: 'unassigned',
-                locked: false
+                locked: false,
+                pos: p.detectedPos || (prev ? prev.pos : '')
             };
         });
 
@@ -807,7 +872,7 @@
         saveToStorage();
     }
 
-    // 重設所有球員回待分發區（並解除所有鎖定）
+    // 重設所有球員回待分發區（保留球員位置，解除隊伍與鎖定）
     function resetTeams() {
         players.forEach(p => {
             p.team = 'unassigned';
@@ -818,39 +883,88 @@
         saveToStorage();
     }
 
-    // 隨機分隊（保留已 📌 固定/人手編隊的球員，只隨機分配其餘球員）
+    // 變更球員位置 (C / PF / SF / SG / PG)
+    function changePlayerPos(playerId, newPos) {
+        const player = players.find(p => p.id === playerId);
+        if (!player) return;
+        player.pos = newPos;
+        renderTeams();
+        updateWhatsAppPreview(false);
+        saveToStorage();
+    }
+
+    // 隨機分隊（支援保留 📌 固定隊員 + ⚖️ 按位置平均分配）
     function randomAssign() {
         if (players.length === 0) {
             loadPlayers();
         }
 
+        const balancePos = document.getElementById('balancePos').checked;
         let unlockedPlayers = players.filter(p => !p.locked || p.team === 'unassigned');
 
-        for (let i = unlockedPlayers.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [unlockedPlayers[i], unlockedPlayers[j]] = [unlockedPlayers[j], unlockedPlayers[i]];
-        }
+        // 先洗牌所有未鎖定球員
+        const shuffle = (arr) => {
+            for (let i = arr.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [arr[i], arr[j]] = [arr[j], arr[i]];
+            }
+            return arr;
+        };
+        shuffle(unlockedPlayers);
 
+        // 統計目前各隊已鎖定的人數與位置數量
         let teamCounts = { A: 0, B: 0, C: 0, D: 0 };
+        let teamPosCounts = {
+            A: { PG: 0, SG: 0, SF: 0, PF: 0, C: 0 },
+            B: { PG: 0, SG: 0, SF: 0, PF: 0, C: 0 },
+            C: { PG: 0, SG: 0, SF: 0, PF: 0, C: 0 },
+            D: { PG: 0, SG: 0, SF: 0, PF: 0, C: 0 }
+        };
+
         players.forEach(p => {
             if (p.locked && p.team !== 'unassigned') {
                 teamCounts[p.team]++;
+                if (p.pos && teamPosCounts[p.team][p.pos] !== undefined) {
+                    teamPosCounts[p.team][p.pos]++;
+                }
             }
         });
 
+        // 如果開啟「平均分配位置」，優先分配有標記位置的球員
+        if (balancePos) {
+            unlockedPlayers.sort((a, b) => (posOrder[a.pos || ''] || 6) - (posOrder[b.pos || ''] || 6));
+        }
+
         unlockedPlayers.forEach(p => {
             p.locked = false;
-            let assigned = false;
-            for (let t of teamKeys) {
-                if (teamCounts[t] < 5) {
-                    p.team = t;
-                    teamCounts[t]++;
-                    assigned = true;
-                    break;
-                }
-            }
-            if (!assigned) {
+            let availableTeams = teamKeys.filter(t => teamCounts[t] < 5);
+            if (availableTeams.length === 0) {
                 p.team = 'unassigned';
+                return;
+            }
+
+            let chosenTeam = availableTeams[0];
+
+            if (balancePos && p.pos) {
+                // 尋找：(1) 該位置人數最少 ➔ (2) 隊伍總人數最少 ➔ (3) 隨機
+                shuffle(availableTeams);
+                availableTeams.sort((t1, t2) => {
+                    const posDiff = teamPosCounts[t1][p.pos] - teamPosCounts[t2][p.pos];
+                    if (posDiff !== 0) return posDiff;
+                    return teamCounts[t1] - teamCounts[t2];
+                });
+                chosenTeam = availableTeams[0];
+            } else if (balancePos) {
+                // 無位置球員：優先填補人數較少的隊伍
+                shuffle(availableTeams);
+                availableTeams.sort((t1, t2) => teamCounts[t1] - teamCounts[t2]);
+                chosenTeam = availableTeams[0];
+            }
+
+            p.team = chosenTeam;
+            teamCounts[chosenTeam]++;
+            if (p.pos && teamPosCounts[chosenTeam][p.pos] !== undefined) {
+                teamPosCounts[chosenTeam][p.pos]++;
             }
         });
 
@@ -872,6 +986,7 @@
     // 渲染分隊畫面
     function renderTeams() {
         const zones = ['unassigned', 'A', 'B', 'C', 'D'];
+        const positions = ['', 'PG', 'SG', 'SF', 'PF', 'C'];
         
         zones.forEach(zone => {
             const listEl = document.getElementById(`list-${zone}`);
@@ -879,7 +994,12 @@
             const countEl = document.getElementById(`count-${zone}`);
             listEl.innerHTML = '';
 
-            const zonePlayers = players.filter(p => p.team === zone);
+            let zonePlayers = players.filter(p => p.team === zone);
+
+            // 若在隊伍中，可依位置排序讓陣容更清晰 (PG -> SG -> SF -> PF -> C -> 未設定)
+            if (zone !== 'unassigned') {
+                zonePlayers = [...zonePlayers].sort((a, b) => (posOrder[a.pos || ''] || 6) - (posOrder[b.pos || ''] || 6));
+            }
             
             if (zone === 'unassigned') {
                 countEl.innerText = `${zonePlayers.length} 人`;
@@ -900,6 +1020,18 @@
                 item.id = p.id;
                 item.ondragstart = (e) => drag(e, p.id);
 
+                // 位置下拉選單 (PG/SG/SF/PF/C)
+                const posClass = p.pos ? `pos-${p.pos}` : '';
+                const posOptionsHTML = positions.map(pos => 
+                    `<option value="${pos}" ${p.pos === pos ? 'selected' : ''}>${pos === '' ? '位置' : pos}</option>`
+                ).join('');
+                
+                const posSelectHTML = `
+                    <select class="pos-select ${posClass}" onchange="changePlayerPos('${p.id}', this.value)" onclick="event.stopPropagation()" title="選擇球員位置">
+                        ${posOptionsHTML}
+                    </select>
+                `;
+
                 const lockBtnHTML = zone !== 'unassigned' ? `
                     <button type="button" class="lock-btn ${p.locked ? 'active' : ''}" 
                             onclick="toggleLock('${p.id}', event)" 
@@ -909,7 +1041,7 @@
                 ` : '';
 
                 const selectHTML = `
-                    <select class="team-select-mobile" onchange="movePlayer('${p.id}', this.value)">
+                    <select class="team-select-mobile" onchange="movePlayer('${p.id}', this.value)" onclick="event.stopPropagation()">
                         <option value="unassigned" ${p.team === 'unassigned' ? 'selected' : ''}>待分</option>
                         <option value="A" ${p.team === 'A' ? 'selected' : ''}>A隊</option>
                         <option value="B" ${p.team === 'B' ? 'selected' : ''}>B隊</option>
@@ -919,7 +1051,10 @@
                 `;
 
                 item.innerHTML = `
-                    <span>👤 ${p.name}</span>
+                    <div class="player-info">
+                        ${posSelectHTML}
+                        <span class="player-name" title="${p.name}">${p.name}</span>
+                    </div>
                     <div class="player-actions">
                         ${lockBtnHTML}
                         ${selectHTML}
@@ -970,7 +1105,7 @@
     }
 
     // =========================================================
-    // 📲 WhatsApp 文字生成及複製功能
+    // 📲 WhatsApp 文字生成及複製功能 (自動包含位置)
     // =========================================================
     function buildWhatsAppText(includeResults) {
         const teamIcons = { A: '🔴', B: '🔵', C: '🟢', D: '🟡' };
@@ -979,13 +1114,16 @@
         lines.push('━━━━━━━━━━━━━━');
 
         teamKeys.forEach(t => {
-            const tPlayers = players.filter(p => p.team === t);
+            let tPlayers = players.filter(p => p.team === t);
+            tPlayers.sort((a, b) => (posOrder[a.pos || ''] || 6) - (posOrder[b.pos || ''] || 6));
+
             lines.push(`${teamIcons[t]} *Team ${t} (${tPlayers.length}人)*`);
             if (tPlayers.length === 0) {
                 lines.push('（未編配）');
             } else {
                 tPlayers.forEach((p, idx) => {
-                    lines.push(`${idx + 1}. ${p.name}`);
+                    const posTag = p.pos ? `[${p.pos}] ` : '';
+                    lines.push(`${idx + 1}. ${posTag}${p.name}`);
                 });
             }
             lines.push('');
@@ -994,7 +1132,7 @@
         const unassigned = players.filter(p => p.team === 'unassigned');
         if (unassigned.length > 0) {
             lines.push(`⏳ *待分發 (${unassigned.length}人)：*`);
-            lines.push(unassigned.map(p => p.name).join('、'));
+            lines.push(unassigned.map(p => (p.pos ? `[${p.pos}]${p.name}` : p.name)).join('、'));
             lines.push('');
         }
 
