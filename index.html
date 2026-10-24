@@ -43,6 +43,61 @@
         h2 { font-size: 1.35rem; }
         h3 { font-size: 1.15rem; border-bottom: 1px solid var(--border); }
 
+        /* 🔒 管理員 / 唯讀模式狀態列 */
+        .admin-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-weight: bold;
+            transition: all 0.2s;
+        }
+        .admin-bar.unlocked {
+            background-color: #fff4e6;
+            border: 2px solid #fd7e14;
+            color: #d9480f;
+        }
+        .admin-bar.locked {
+            background-color: #e9ecef;
+            border: 2px solid #6c757d;
+            color: #495057;
+        }
+        .admin-status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.95rem;
+        }
+        .admin-actions {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        /* 當處於「唯讀模式」時，隱藏管理員專用按鈕及鎖定輸入 */
+        body.readonly-mode .admin-only {
+            display: none !important;
+        }
+        body.readonly-mode .player-item {
+            cursor: default !important;
+        }
+        body.readonly-mode .score-input {
+            background-color: #f1f3f5;
+            border-color: transparent;
+            color: var(--dark);
+            pointer-events: none;
+        }
+        body.readonly-mode .pos-select {
+            pointer-events: none;
+            appearance: none;
+            -webkit-appearance: none;
+            padding-right: 5px;
+        }
+
         .rules-box {
             background: #fff3cd;
             border-left: 5px solid #ffc107;
@@ -76,12 +131,15 @@
         }
         .btn:active { transform: scale(0.98); }
         .btn:hover { background-color: #e05e00; }
+        .btn-sm { padding: 7px 12px; font-size: 13.5px; }
         .btn-secondary { background-color: #6c757d; }
         .btn-secondary:hover { background-color: #5a6268; }
         .btn-whatsapp { background-color: #1da851; }
         .btn-whatsapp:hover { background-color: #168a41; }
         .btn-info { background-color: #0d6efd; }
         .btn-info:hover { background-color: #0b5ed7; }
+        .btn-purple { background-color: #6f42c1; }
+        .btn-purple:hover { background-color: #59339d; }
         .btn-danger { background-color: #dc3545; width: 100%; margin-top: 25px; padding: 12px; }
         .btn-danger:hover { background-color: #c82333; }
         
@@ -121,6 +179,9 @@
             grid-template-columns: repeat(5, 1fr);
             gap: 12px;
             margin-top: 15px;
+        }
+        body.readonly-mode .teams-wrapper {
+            grid-template-columns: repeat(4, 1fr);
         }
         .team-box {
             background: var(--light);
@@ -206,7 +267,6 @@
             transition: all 0.15s;
         }
         .pos-select:hover { border-color: #adb5bd; }
-        /* 各位置專屬配色 */
         .pos-select.pos-PG { background-color: #e7f5ff; color: #1971c2; border-color: #74c0fc; }
         .pos-select.pos-SG { background-color: #f3f0ff; color: #6741d9; border-color: #b197fc; }
         .pos-select.pos-SF { background-color: #ebfbee; color: #2f9e44; border-color: #8ce99a; }
@@ -379,14 +439,14 @@
         }
 
         /* =========================================================
-           📱 響應式設計 (Media Queries) - 自動偵測並轉換為平板/手機版面
+           📱 響應式設計 (Media Queries)
            ========================================================= */
         @media (max-width: 992px) {
             .grid-2col {
                 grid-template-columns: 1fr;
                 gap: 15px;
             }
-            .teams-wrapper {
+            .teams-wrapper, body.readonly-mode .teams-wrapper {
                 grid-template-columns: repeat(2, 1fr);
             }
             #box-unassigned {
@@ -449,7 +509,7 @@
         }
 
         @media (max-width: 420px) {
-            .teams-wrapper {
+            .teams-wrapper, body.readonly-mode .teams-wrapper {
                 grid-template-columns: 1fr;
             }
             .options-bar .btn {
@@ -463,10 +523,23 @@
 <div class="container">
     <h1>🏀 籃球分隊及賽程計分系統</h1>
 
+    <!-- 🛡️ 防誤觸 / 觀戰模式控制列 -->
+    <div id="admin-bar" class="admin-bar unlocked">
+        <div class="admin-status" id="admin-status-text">
+            <span>✏️ 目前為【管理員編輯模式】— 可自由分隊及輸入比分</span>
+        </div>
+        <div class="admin-actions">
+            <button type="button" class="btn btn-sm btn-purple" onclick="copyShareLink()">🔗 複製【唯讀戰況連結】俾波友睇</button>
+            <button type="button" id="toggle-lock-btn" class="btn btn-sm btn-secondary" onclick="toggleReadOnlyMode()">🔒 鎖定畫面 (防誤觸)</button>
+        </div>
+    </div>
+
     <!-- 第一部分：輸入名單與分隊 -->
     <h2>1. 球員名單及分隊 (每隊5人)</h2>
-    <div>
-        <textarea id="playerInput" placeholder="請直接貼上接龍報名名單（支援 1.TK 或 1.TK (PG) 格式，每行一人）..." oninput="saveToStorage()"></textarea>
+    
+    <!-- 管理員專用輸入區（唯讀模式時自動隱藏） -->
+    <div class="admin-only">
+        <textarea id="playerInput" placeholder="請直接貼上接龍報名名單（支援 1.球員1 或 1.球員1 (PG) 格式，每行一人）..." oninput="saveToStorage()"></textarea>
         
         <div class="options-bar">
             <button class="btn" onclick="loadPlayers()">📥 載入名單至待分區</button>
@@ -485,12 +558,12 @@
             </label>
         </div>
         <p style="font-size: 0.85em; color: #666; margin-top: 4px;">
-            💡 <b>位置與固定功能：</b>可在球員旁選擇位置（<b>PG/SG/SF/PF/C</b>，報名名單若有寫如 <code>1.TK (PG)</code> 也會自動識別）。人手拖拉或選單指派隊伍後會標記為 <b>📌固定 (黃底)</b>，按「🎲 隨機分隊」時只會抽未固定的球員！
+            💡 <b>防改動貼士：</b>分好隊或入緊分嗰陣，可以撳頂部「<b>🔒 鎖定畫面</b>」，或者撳「<b>🔗 複製唯讀戰況連結</b>」Send 落谷。其他人打開連結會見到最新分隊同比分，但<b>預設鎖死唔俾亂改或重設</b>！
         </p>
     </div>
 
     <div class="teams-wrapper">
-        <div class="team-box" id="box-unassigned" ondrop="drop(event, 'unassigned')" ondragover="allowDrop(event)">
+        <div class="team-box admin-only" id="box-unassigned" ondrop="drop(event, 'unassigned')" ondragover="allowDrop(event)">
             <div class="team-header">
                 <span>待分發球員</span>
                 <span id="count-unassigned">0</span>
@@ -523,34 +596,35 @@
     <div class="whatsapp-box">
         <div class="whatsapp-header">
             <div class="whatsapp-title">
-                <span>📲 WhatsApp 通知文字生成區</span>
+                <span>📲 WhatsApp 通知及戰況連結分享</span>
                 <span id="copy-toast" class="copy-toast">✅ 已複製到剪貼簿！</span>
             </div>
             <div class="options-bar" style="margin-bottom: 0;">
-                <button class="btn btn-whatsapp" onclick="generateAndCopyWhatsApp(false)">📋 生成並複製【分隊名單】</button>
-                <button class="btn btn-info" onclick="generateAndCopyWhatsApp(true)">🏆 生成並複製【分隊 + 最新戰果】</button>
+                <button class="btn btn-whatsapp" onclick="generateAndCopyWhatsApp(false)">📋 複製【分隊名單】</button>
+                <button class="btn btn-info" onclick="generateAndCopyWhatsApp(true)">🏆 複製【分隊 + 最新戰果】</button>
+                <button class="btn btn-purple" onclick="copyShareLink()">🔗 複製【唯讀戰況網頁連結】</button>
             </div>
         </div>
-        <textarea id="whatsappOutput" style="height: 150px; margin-bottom: 0; font-size: 14px; background: #ffffff;" placeholder="分隊完成後，點擊上方綠色按鈕即可自動產生 WhatsApp 格式名單並複製..."></textarea>
+        <textarea id="whatsappOutput" readonly style="height: 150px; margin-bottom: 0; font-size: 14px; background: #ffffff;" placeholder="分隊完成後，點擊上方按鈕即可自動產生 WhatsApp 格式名單或分享連結..."></textarea>
     </div>
 
     <!-- 第二部分：單循環小組賽與排名榜 -->
-    <h2>2. 小組單循環賽 & 累計得分排名榜</h2>
+    <h2>2. 小組單循環賽 & 積分排名榜</h2>
     <div class="rules-box">
         <strong>⏱️ 小組賽規則：</strong> 10分鐘一節（不設15分上限）。<br>
-        <strong>📊 排名方式：</strong> 以每隊 <strong>累計總得分</strong> 高低決定排名！
+        <strong>📊 計分及排名方式：</strong> <strong>勝 +2分 ｜ 和 +1分 ｜ 負 +0分</strong>。若積分相同，則以 <strong>得失分差（得分 - 失分）</strong> 決定名次！
     </div>
 
     <div class="grid-2col">
         <!-- 賽程輸入 -->
         <div>
-            <h3>📅 小組賽程 (10分鐘一節，輸入比分自動儲存及計算)</h3>
+            <h3>📅 小組賽程 (10分鐘一節)</h3>
             <div id="group-matches"></div>
         </div>
 
         <!-- 排名榜 -->
         <div>
-            <h3>🏆 小組排名榜 (按累計得分排序)</h3>
+            <h3>🏆 小組排名榜</h3>
             <div class="table-responsive">
                 <table>
                     <thead>
@@ -561,9 +635,10 @@
                             <th>勝</th>
                             <th>和</th>
                             <th>負</th>
-                            <th>累計得分</th>
+                            <th>積分</th>
+                            <th>得分</th>
                             <th>失分</th>
-                            <th>分差</th>
+                            <th>得失分差</th>
                         </tr>
                     </thead>
                     <tbody id="standings-body">
@@ -571,14 +646,14 @@
                     </tbody>
                 </table>
             </div>
-            <p style="font-size: 0.8em; color: #666; margin-top: 6px;">* 排名優先按「累計得分」排序；若同分則依次按「分差 (得分-失分)」及「勝場數」排序。</p>
+            <p style="font-size: 0.8em; color: #666; margin-top: 6px;">* 排名順序：1. 積分（勝2分 / 和1分 / 負0分） ➔ 2. 得失分差（得分 - 失分） ➔ 3. 累計總得分。</p>
         </div>
     </div>
 
     <!-- 第三部分：決賽及季軍戰 -->
     <h2>3. 決賽及名次賽 (兩節總和制)</h2>
     <div class="rules-box">
-        <strong>⏱️ 決賽規則：</strong> 按小組累計得分排名分組（第一 vs 第二 爭冠；第三 vs 第四 爭季）。<br>
+        <strong>⏱️ 決賽規則：</strong> 按小組排名分組（第一 vs 第二 爭冠；第三 vs 第四 爭季）。<br>
         每場 <strong>10分鐘一節</strong>，交替進行共打兩節，<strong>以兩節總和得分最高為勝方</strong>。
     </div>
 
@@ -665,19 +740,23 @@
         </div>
     </div>
 
-    <button class="btn btn-danger" onclick="clearAllStorage()">🗑️ 清除所有比分及分隊紀錄 (重新開波)</button>
+    <button class="btn btn-danger admin-only" onclick="clearAllStorage()">🗑️ 清除所有比分及分隊紀錄 (重新開波)</button>
 </div>
 
 <script>
-    const STORAGE_KEY = 'bball_system_responsive_v4';
+    const STORAGE_KEY = 'bball_system_responsive_v6';
+    
+    // 🔑 預設管理員解鎖密碼（你可以隨時改呢個數字）
+    const ADMIN_PIN = '8888';
+    let isReadOnly = false;
 
-    // 狀態管理：pos 屬性記錄球員位置 ('', 'PG', 'SG', 'SF', 'PF', 'C')
+    // 狀態管理
     let players = []; // { id, name, team, locked, pos }
     const teamKeys = ['A', 'B', 'C', 'D'];
     const posOrder = { 'PG': 1, 'SG': 2, 'SF': 3, 'PF': 4, 'C': 5, '': 6 };
     let currentStandings = [];
     
-    // 小組賽程設定（已按最新順序更新：A vs B, C vs D, A vs C, B vs D, A vs D, B vs C）
+    // 小組賽程設定（A vs B, C vs D, A vs C, B vs D, A vs D, B vs C）
     let groupSchedule = [
         { id: 1, t1: 'A', t2: 'B', s1: '', s2: '' },
         { id: 2, t1: 'C', t2: 'D', s1: '', s2: '' },
@@ -691,34 +770,30 @@
 
     // 初始化網頁
     window.onload = function() {
+        // 1. 優先檢查網址 Hash 是否有分享過來的戰況資料 (#data=...)
+        if (window.location.hash && window.location.hash.startsWith('#data=')) {
+            try {
+                const encoded = window.location.hash.replace('#data=', '');
+                const jsonStr = decodeURIComponent(escape(atob(encoded)));
+                const sharedState = JSON.parse(jsonStr);
+                applyStateToUI(sharedState);
+                // 透過分享連結進入的人，自動開啟「🔒 唯讀觀戰模式」防止亂改！
+                setReadOnlyMode(true);
+                return;
+            } catch (e) {
+                console.error("解析分享連結失敗，改為讀取本機資料", e);
+            }
+        }
+
+        // 2. 讀取本機 LocalStorage 儲存紀錄
         const savedData = localStorage.getItem(STORAGE_KEY);
         if (savedData) {
             try {
                 const parsed = JSON.parse(savedData);
-                document.getElementById('playerInput').value = parsed.rawText || '';
-                document.getElementById('stripNumbers').checked = parsed.stripNumbers !== false;
-                if (parsed.balancePos !== undefined) {
-                    document.getElementById('balancePos').checked = parsed.balancePos;
+                applyStateToUI(parsed);
+                if (parsed.isReadOnly) {
+                    setReadOnlyMode(true);
                 }
-                players = (parsed.players || []).map(p => ({
-                    ...p,
-                    locked: !!p.locked,
-                    pos: p.pos || ''
-                }));
-                if (parsed.groupSchedule) groupSchedule = parsed.groupSchedule;
-                
-                renderTeams();
-                renderGroupMatches();
-                
-                if (parsed.finals) {
-                    finalInputIds.forEach(id => {
-                        if (parsed.finals[id] !== undefined) {
-                            document.getElementById(id).value = parsed.finals[id];
-                        }
-                    });
-                }
-                updateStandings();
-                updateWhatsAppPreview(false);
                 return;
             } catch (e) {
                 console.error("讀取儲存紀錄失敗，載入預設值", e);
@@ -731,60 +806,154 @@
         updateWhatsAppPreview(false);
     };
 
-    // 儲存狀態至 LocalStorage
-    function saveToStorage() {
+    function applyStateToUI(parsed) {
+        document.getElementById('playerInput').value = parsed.rawText || '';
+        document.getElementById('stripNumbers').checked = parsed.stripNumbers !== false;
+        if (parsed.balancePos !== undefined) {
+            document.getElementById('balancePos').checked = parsed.balancePos;
+        }
+        players = (parsed.players || []).map(p => ({
+            ...p,
+            locked: !!p.locked,
+            pos: p.pos || ''
+        }));
+        if (parsed.groupSchedule) groupSchedule = parsed.groupSchedule;
+        
+        renderTeams();
+        renderGroupMatches();
+        
+        if (parsed.finals) {
+            finalInputIds.forEach(id => {
+                if (parsed.finals[id] !== undefined) {
+                    document.getElementById(id).value = parsed.finals[id];
+                }
+            });
+        }
+        updateStandings();
+        updateWhatsAppPreview(false);
+    }
+
+    // 🔒 切換唯讀 / 管理員模式
+    function toggleReadOnlyMode() {
+        if (!isReadOnly) {
+            // 由管理員鎖定為唯讀模式
+            setReadOnlyMode(true);
+            saveToStorage();
+        } else {
+            // 由唯讀模式解鎖（需要輸入密碼）
+            const pin = prompt("🔑 請輸入管理員解鎖密碼（預設為 8888）：");
+            if (pin === null) return;
+            if (pin === ADMIN_PIN) {
+                // 如果係由分享連結入嚟並解鎖，清除網址上嘅 #data，並儲存落本機
+                if (window.location.hash.startsWith('#data=')) {
+                    history.replaceState(null, null, window.location.pathname + window.location.search);
+                }
+                setReadOnlyMode(false);
+                saveToStorage();
+            } else {
+                alert("❌ 密碼錯誤！目前維持唯讀觀戰模式。");
+            }
+        }
+    }
+
+    function setReadOnlyMode(readonly) {
+        isReadOnly = readonly;
+        const bar = document.getElementById('admin-bar');
+        const statusText = document.getElementById('admin-status-text');
+        const toggleBtn = document.getElementById('toggle-lock-btn');
+
+        if (isReadOnly) {
+            document.body.classList.add('readonly-mode');
+            bar.className = 'admin-bar locked';
+            statusText.innerHTML = '<span>👀 目前為【唯讀觀戰模式】— 資料已鎖定保護，防止誤觸修改</span>';
+            toggleBtn.innerHTML = '🔑 管理員解鎖';
+            toggleBtn.className = 'btn btn-sm';
+        } else {
+            document.body.classList.remove('readonly-mode');
+            bar.className = 'admin-bar unlocked';
+            statusText.innerHTML = '<span>✏️ 目前為【管理員編輯模式】— 可自由分隊及輸入比分</span>';
+            toggleBtn.innerHTML = '🔒 鎖定畫面 (防誤觸)';
+            toggleBtn.className = 'btn btn-sm btn-secondary';
+        }
+
+        // 重新渲染確保鎖定狀態生效
+        renderTeams();
+        renderGroupMatches();
+        finalInputIds.forEach(id => {
+            document.getElementById(id).readOnly = isReadOnly;
+        });
+    }
+
+    // 🔗 生成並複製「唯讀戰況分享連結」
+    function copyShareLink() {
+        const state = getCurrentStateObject();
+        try {
+            const jsonStr = JSON.stringify(state);
+            const encoded = btoa(unescape(encodeURIComponent(jsonStr)));
+            const baseUrl = window.location.href.split('#')[0];
+            const shareUrl = `${baseUrl}#data=${encoded}`;
+
+            const outputEl = document.getElementById('whatsappOutput');
+            outputEl.value = `🏀 即時籃球分隊及比分戰況（唯讀觀戰連結）：\n${shareUrl}`;
+
+            if (navigator.clipboard && window.isSecureContext) {
+                navigator.clipboard.writeText(shareUrl).then(() => {
+                    showCopyToast("✅ 已複製【唯讀戰況連結】！");
+                }).catch(() => fallbackCopy(outputEl));
+            } else {
+                fallbackCopy(outputEl);
+            }
+        } catch (e) {
+            alert("產生分享連結失敗！");
+        }
+    }
+
+    function getCurrentStateObject() {
         let finalsData = {};
         finalInputIds.forEach(id => {
             finalsData[id] = document.getElementById(id).value;
         });
 
-        const state = {
+        return {
             rawText: document.getElementById('playerInput').value,
             stripNumbers: document.getElementById('stripNumbers').checked,
             balancePos: document.getElementById('balancePos').checked,
             players: players,
             groupSchedule: groupSchedule,
-            finals: finalsData
+            finals: finalsData,
+            isReadOnly: isReadOnly
         };
+    }
+
+    // 儲存狀態至 LocalStorage
+    function saveToStorage() {
+        // 如果正在瀏覽別人分享的 #data= 唯讀連結，未解鎖前不覆蓋自己本機的紀錄
+        if (window.location.hash.startsWith('#data=') && isReadOnly) return;
+        const state = getCurrentStateObject();
         localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
     }
 
-    // 清除所有紀錄
+    // 🗑️ 雙重防呆清除所有紀錄
     function clearAllStorage() {
-        if (confirm("確定要清除所有分隊及比分紀錄，重新開始嗎？")) {
+        if (isReadOnly) return;
+        const check = prompt("⚠️ 警告：這會清除所有分隊及比分紀錄！\n為防止誤觸，請輸入「RESET」（大楷）確認清除：");
+        if (check === "RESET") {
             localStorage.removeItem(STORAGE_KEY);
+            history.replaceState(null, null, window.location.pathname + window.location.search);
             location.reload();
+        } else if (check !== null) {
+            alert("輸入不正確，已取消清除操作。");
         }
     }
 
-    // 載入預設名單
+    // 載入預設名單（球員1 至 球員20）
     function loadDefaultPlayers() {
-        const defaultList = 
-`1.球員1
-2.球員2
-3.球員3
-4.球員4
-5.球員5
-6.球員6
-7.球員7
-8.球員8
-9.球員9
-10.球員10
-11.球員11
-12.球員12
-13.球員13
-14.球員14
-15.球員15
-16.球員16
-17.球員17
-18.球員18
-19.球員19
-20.球員20`;
+        if (isReadOnly) return;
+        const defaultList = Array.from({ length: 20 }, (_, i) => `${i + 1}.球員${i + 1}`).join('\n');
         document.getElementById('playerInput').value = defaultList;
         loadPlayers();
     }
 
-    // 從字串結尾自動識別是否有寫位置，例如 "TK (PG)" 或 "Yan - C"
     function extractPosition(str) {
         const posRegex = /^(.*?)[\s\-\(\[\（【\/]+(PG|SG|SF|PF|C)[\)\]\）】]*$/i;
         const match = str.trim().match(posRegex);
@@ -799,6 +968,7 @@
 
     // 智慧型解析並載入球員至待分發區
     function loadPlayers() {
+        if (isReadOnly) return;
         const rawText = document.getElementById('playerInput').value;
         const stripNum = document.getElementById('stripNumbers').checked;
 
@@ -813,7 +983,6 @@
             return;
         }
 
-        // 保留舊球員已設定的位置與鎖定狀態（如果名字相同）
         let oldPlayerMap = {};
         players.forEach(p => {
             oldPlayerMap[p.name] = { pos: p.pos, team: p.team, locked: p.locked };
@@ -871,8 +1040,10 @@
         saveToStorage();
     }
 
-    // 重設所有球員回待分發區（保留球員位置，解除隊伍與鎖定）
+    // 重設所有球員回待分發區
     function resetTeams() {
+        if (isReadOnly) return;
+        if (!confirm("確定要將所有球員移回「待分發區」嗎？")) return;
         players.forEach(p => {
             p.team = 'unassigned';
             p.locked = false;
@@ -882,8 +1053,8 @@
         saveToStorage();
     }
 
-    // 變更球員位置 (C / PF / SF / SG / PG)
     function changePlayerPos(playerId, newPos) {
+        if (isReadOnly) return;
         const player = players.find(p => p.id === playerId);
         if (!player) return;
         player.pos = newPos;
@@ -892,8 +1063,9 @@
         saveToStorage();
     }
 
-    // 隨機分隊（支援保留 📌 固定隊員 + ⚖️ 按位置平均分配）
+    // 隨機分隊
     function randomAssign() {
+        if (isReadOnly) return;
         if (players.length === 0) {
             loadPlayers();
         }
@@ -901,7 +1073,6 @@
         const balancePos = document.getElementById('balancePos').checked;
         let unlockedPlayers = players.filter(p => !p.locked || p.team === 'unassigned');
 
-        // 先洗牌所有未鎖定球員
         const shuffle = (arr) => {
             for (let i = arr.length - 1; i > 0; i--) {
                 const j = Math.floor(Math.random() * (i + 1));
@@ -911,7 +1082,6 @@
         };
         shuffle(unlockedPlayers);
 
-        // 統計目前各隊已鎖定的人數與位置數量
         let teamCounts = { A: 0, B: 0, C: 0, D: 0 };
         let teamPosCounts = {
             A: { PG: 0, SG: 0, SF: 0, PF: 0, C: 0 },
@@ -929,7 +1099,6 @@
             }
         });
 
-        // 如果開啟「平均分配位置」，優先分配有標記位置的球員
         if (balancePos) {
             unlockedPlayers.sort((a, b) => (posOrder[a.pos || ''] || 6) - (posOrder[b.pos || ''] || 6));
         }
@@ -945,7 +1114,6 @@
             let chosenTeam = availableTeams[0];
 
             if (balancePos && p.pos) {
-                // 尋找：(1) 該位置人數最少 ➔ (2) 隊伍總人數最少 ➔ (3) 隨機
                 shuffle(availableTeams);
                 availableTeams.sort((t1, t2) => {
                     const posDiff = teamPosCounts[t1][p.pos] - teamPosCounts[t2][p.pos];
@@ -954,7 +1122,6 @@
                 });
                 chosenTeam = availableTeams[0];
             } else if (balancePos) {
-                // 無位置球員：優先填補人數較少的隊伍
                 shuffle(availableTeams);
                 availableTeams.sort((t1, t2) => teamCounts[t1] - teamCounts[t2]);
                 chosenTeam = availableTeams[0];
@@ -972,9 +1139,9 @@
         saveToStorage();
     }
 
-    // 切換球員的固定/解鎖狀態
     function toggleLock(playerId, ev) {
         if (ev) ev.stopPropagation();
+        if (isReadOnly) return;
         const player = players.find(p => p.id === playerId);
         if (!player || player.team === 'unassigned') return;
         player.locked = !player.locked;
@@ -995,7 +1162,6 @@
 
             let zonePlayers = players.filter(p => p.team === zone);
 
-            // 若在隊伍中，可依位置排序讓陣容更清晰 (PG -> SG -> SF -> PF -> C -> 未設定)
             if (zone !== 'unassigned') {
                 zonePlayers = [...zonePlayers].sort((a, b) => (posOrder[a.pos || ''] || 6) - (posOrder[b.pos || ''] || 6));
             }
@@ -1015,23 +1181,22 @@
             zonePlayers.forEach(p => {
                 const item = document.createElement('div');
                 item.className = 'player-item' + (p.locked && zone !== 'unassigned' ? ' is-locked' : '');
-                item.draggable = true;
+                item.draggable = !isReadOnly;
                 item.id = p.id;
                 item.ondragstart = (e) => drag(e, p.id);
 
-                // 位置下拉選單 (PG/SG/SF/PF/C)
                 const posClass = p.pos ? `pos-${p.pos}` : '';
                 const posOptionsHTML = positions.map(pos => 
-                    `<option value="${pos}" ${p.pos === pos ? 'selected' : ''}>${pos === '' ? '位置' : pos}</option>`
+                    `<option value="${pos}" ${p.pos === pos ? 'selected' : ''}>${pos === '' ? '-' : pos}</option>`
                 ).join('');
                 
                 const posSelectHTML = `
-                    <select class="pos-select ${posClass}" onchange="changePlayerPos('${p.id}', this.value)" onclick="event.stopPropagation()" title="選擇球員位置">
+                    <select class="pos-select ${posClass}" onchange="changePlayerPos('${p.id}', this.value)" onclick="event.stopPropagation()" title="球員位置" ${isReadOnly ? 'disabled' : ''}>
                         ${posOptionsHTML}
                     </select>
                 `;
 
-                const lockBtnHTML = zone !== 'unassigned' ? `
+                const lockBtnHTML = (zone !== 'unassigned' && !isReadOnly) ? `
                     <button type="button" class="lock-btn ${p.locked ? 'active' : ''}" 
                             onclick="toggleLock('${p.id}', event)" 
                             title="${p.locked ? '已固定於此隊 (點擊解除固定)' : '隨機分隊時會重抽 (點擊固定於此隊)'}">
@@ -1039,7 +1204,7 @@
                     </button>
                 ` : '';
 
-                const selectHTML = `
+                const selectHTML = !isReadOnly ? `
                     <select class="team-select-mobile" onchange="movePlayer('${p.id}', this.value)" onclick="event.stopPropagation()">
                         <option value="unassigned" ${p.team === 'unassigned' ? 'selected' : ''}>待分</option>
                         <option value="A" ${p.team === 'A' ? 'selected' : ''}>A隊</option>
@@ -1047,7 +1212,7 @@
                         <option value="C" ${p.team === 'C' ? 'selected' : ''}>C隊</option>
                         <option value="D" ${p.team === 'D' ? 'selected' : ''}>D隊</option>
                     </select>
-                `;
+                ` : '';
 
                 item.innerHTML = `
                     <div class="player-info">
@@ -1064,23 +1229,25 @@
         });
     }
 
-    // 拖拉功能實作
     function allowDrop(ev) {
+        if (isReadOnly) return;
         ev.preventDefault();
     }
 
     function drag(ev, playerId) {
+        if (isReadOnly) return;
         ev.dataTransfer.setData("text/plain", playerId);
     }
 
     function drop(ev, targetTeam) {
+        if (isReadOnly) return;
         ev.preventDefault();
         const playerId = ev.dataTransfer.getData("text/plain");
         movePlayer(playerId, targetTeam);
     }
 
-    // 當人手移動球員（拖拉或手機選單）時，自動將該球員設為 locked = true
     function movePlayer(playerId, targetTeam) {
+        if (isReadOnly) return;
         const player = players.find(p => p.id === playerId);
         if (!player || player.team === targetTeam) return;
 
@@ -1104,7 +1271,7 @@
     }
 
     // =========================================================
-    // 📲 WhatsApp 文字生成及複製功能 (自動包含位置及最新累計得分戰果)
+    // 📲 WhatsApp 文字生成及複製功能
     // =========================================================
     function buildWhatsAppText(includeResults) {
         const teamIcons = { A: '🔴', B: '🔵', C: '🟢', D: '🟡' };
@@ -1137,10 +1304,10 @@
 
         if (includeResults) {
             lines.push('━━━━━━━━━━━━━━');
-            lines.push('📊 *小組賽排名 (按累計得分)*');
+            lines.push('📊 *小組賽排名 (勝2分/和1分/負0分，同分計分差)*');
             currentStandings.forEach((s, idx) => {
                 const diffStr = s.diff > 0 ? `+${s.diff}` : s.diff;
-                lines.push(`${idx + 1}. *Team ${s.team}* ｜ 累計 *${s.pf}分* (${s.w}勝${s.d}和${s.l}負 | 分差${diffStr})`);
+                lines.push(`${idx + 1}. *Team ${s.team}* ｜ *${s.pts}分* (${s.w}勝${s.d}和${s.l}負 | 分差:${diffStr} | 總得分:${s.pf})`);
             });
             lines.push('');
 
@@ -1174,7 +1341,7 @@
 
         if (navigator.clipboard && window.isSecureContext) {
             navigator.clipboard.writeText(textToCopy).then(() => {
-                showCopyToast();
+                showCopyToast("✅ 已複製到剪貼簿！");
             }).catch(() => {
                 fallbackCopy(outputEl);
             });
@@ -1188,11 +1355,12 @@
         textareaEl.setSelectionRange(0, 99999);
         document.execCommand('copy');
         window.getSelection().removeAllRanges();
-        showCopyToast();
+        showCopyToast("✅ 已複製到剪貼簿！");
     }
 
-    function showCopyToast() {
+    function showCopyToast(msg) {
         const toast = document.getElementById('copy-toast');
+        if (msg) toast.innerText = msg;
         toast.style.display = 'inline-block';
         setTimeout(() => {
             toast.style.display = 'none';
@@ -1214,10 +1382,10 @@
                 <div class="match-teams">
                     <span>Team ${m.t1}</span>
                     <input type="number" inputmode="numeric" class="score-input" min="0" max="999" placeholder="0" value="${m.s1}" 
-                           oninput="updateMatchScore(${index}, 's1', this.value)">
+                           ${isReadOnly ? 'readonly' : ''} oninput="updateMatchScore(${index}, 's1', this.value)">
                     <span>vs</span>
                     <input type="number" inputmode="numeric" class="score-input" min="0" max="999" placeholder="0" value="${m.s2}" 
-                           oninput="updateMatchScore(${index}, 's2', this.value)">
+                           ${isReadOnly ? 'readonly' : ''} oninput="updateMatchScore(${index}, 's2', this.value)">
                     <span>Team ${m.t2}</span>
                 </div>
                 <div class="match-status" id="match-status-${index}">未開始</div>
@@ -1226,20 +1394,20 @@
         });
     }
 
-    // 更新小組賽比分
     function updateMatchScore(matchIndex, teamKey, value) {
+        if (isReadOnly) return;
         groupSchedule[matchIndex][teamKey] = value;
         updateStandings();
         saveToStorage();
     }
 
-    // 計算並更新排名榜（以每隊累計得分 pf 決定排名）
+    // 計算並更新排名榜（勝+2 / 和+1 / 負+0，同分按得失分差排序）
     function updateStandings() {
         let stats = {
-            'A': { team: 'A', played: 0, w: 0, d: 0, l: 0, pf: 0, pa: 0, diff: 0 },
-            'B': { team: 'B', played: 0, w: 0, d: 0, l: 0, pf: 0, pa: 0, diff: 0 },
-            'C': { team: 'C', played: 0, w: 0, d: 0, l: 0, pf: 0, pa: 0, diff: 0 },
-            'D': { team: 'D', played: 0, w: 0, d: 0, l: 0, pf: 0, pa: 0, diff: 0 }
+            'A': { team: 'A', played: 0, w: 0, d: 0, l: 0, pts: 0, pf: 0, pa: 0, diff: 0 },
+            'B': { team: 'B', played: 0, w: 0, d: 0, l: 0, pts: 0, pf: 0, pa: 0, diff: 0 },
+            'C': { team: 'C', played: 0, w: 0, d: 0, l: 0, pts: 0, pf: 0, pa: 0, diff: 0 },
+            'D': { team: 'D', played: 0, w: 0, d: 0, l: 0, pts: 0, pf: 0, pa: 0, diff: 0 }
         };
 
         groupSchedule.forEach((m, idx) => {
@@ -1257,14 +1425,16 @@
 
                 if (s1 > s2) {
                     stats[m.t1].w++;
-                    stats[m.t2].l++;
+                    stats[m.t1].pts += 2; // 勝 +2分
+                    stats[m.t2].l++;      // 負 +0分
                     if (statusEl) {
                         statusEl.innerText = `Team ${m.t1} 勝`;
                         statusEl.className = 'match-status status-win';
                     }
                 } else if (s2 > s1) {
                     stats[m.t2].w++;
-                    stats[m.t1].l++;
+                    stats[m.t2].pts += 2; // 勝 +2分
+                    stats[m.t1].l++;      // 負 +0分
                     if (statusEl) {
                         statusEl.innerText = `Team ${m.t2} 勝`;
                         statusEl.className = 'match-status status-win';
@@ -1272,6 +1442,8 @@
                 } else {
                     stats[m.t1].d++;
                     stats[m.t2].d++;
+                    stats[m.t1].pts += 1; // 和 +1分
+                    stats[m.t2].pts += 1; // 和 +1分
                     if (statusEl) {
                         statusEl.innerText = `平手`;
                         statusEl.className = 'match-status status-draw';
@@ -1290,11 +1462,14 @@
             return s;
         });
 
-        // 排序邏輯：1. 累計得分 (pf) ➔ 2. 分差 (diff) ➔ 3. 勝場數 (w)
+        // 🏆 排序邏輯：
+        // 1. 積分 (pts: 勝2分 / 和1分 / 負0分)
+        // 2. 同分下按「得失分差 (diff = 得分 - 失分)」排序
+        // 3. 若仍相同則按「累計總得分 (pf)」排序
         standingsArray.sort((a, b) => {
-            if (b.pf !== a.pf) return b.pf - a.pf;
+            if (b.pts !== a.pts) return b.pts - a.pts;
             if (b.diff !== a.diff) return b.diff - a.diff;
-            return b.w - a.w;
+            return b.pf - a.pf;
         });
 
         currentStandings = standingsArray;
@@ -1310,9 +1485,10 @@
                 <td>${s.w}</td>
                 <td>${s.d}</td>
                 <td>${s.l}</td>
-                <td style="font-weight:bold; color:var(--primary); font-size:1.15em;">${s.pf}</td>
+                <td style="font-weight:bold; color:var(--primary); font-size:1.15em;">${s.pts}</td>
+                <td>${s.pf}</td>
                 <td>${s.pa}</td>
-                <td>${s.diff > 0 ? '+' + s.diff : s.diff}</td>
+                <td style="font-weight:bold; color:#155724;">${s.diff > 0 ? '+' + s.diff : s.diff}</td>
             `;
             tbody.appendChild(tr);
         });
@@ -1320,7 +1496,6 @@
         updateFinalsTeams(standingsArray);
     }
 
-    // 更新決賽對陣名稱
     function updateFinalsTeams(standings) {
         const r1 = `Team ${standings[0].team} (第1)`;
         const r2 = `Team ${standings[1].team} (第2)`;
@@ -1343,6 +1518,7 @@
     }
 
     function onFinalsInput() {
+        if (isReadOnly) return;
         calcFinals();
         saveToStorage();
     }
