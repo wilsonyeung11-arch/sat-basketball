@@ -52,7 +52,7 @@
             gap: 10px;
             padding: 12px 16px;
             border-radius: 8px;
-            margin-bottom: 20px;
+            margin-bottom: 15px;
             font-weight: bold;
             transition: all 0.2s;
         }
@@ -76,6 +76,42 @@
             display: flex;
             gap: 8px;
             flex-wrap: wrap;
+        }
+
+        /* ☁️ 頂部雲端自動同步控制列 */
+        .cloud-sync-bar {
+            background: #eef6ff;
+            border: 2px solid #9ec5fe;
+            border-radius: 10px;
+            padding: 14px 16px;
+            margin-bottom: 20px;
+        }
+        .cloud-sync-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+        .cloud-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.88rem;
+            font-weight: bold;
+            padding: 4px 12px;
+            border-radius: 20px;
+            background: #d1e7dd;
+            color: #0f5132;
+        }
+        .cloud-badge.syncing {
+            background: #fff3cd;
+            color: #664d03;
+        }
+        .cloud-badge.error {
+            background: #f8d7da;
+            color: #842029;
         }
 
         /* 當處於「唯讀模式」時，隱藏管理員專用按鈕及鎖定輸入 */
@@ -534,6 +570,31 @@
         </div>
     </div>
 
+    <!-- ☁️ 全自動 Google Sheet 雲端同步與歷史切換列 -->
+    <div class="cloud-sync-bar">
+        <div class="cloud-sync-header">
+            <div style="font-weight: bold; color: #084298; display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                <span>☁️ Google Sheet 雲端自動同步</span>
+                <span id="syncStatusBadge" class="cloud-badge syncing">⏳ 正在連線讀取雲端紀錄...</span>
+            </div>
+            <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;" class="admin-only">
+                <label style="font-size: 13px; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; color: #084298; font-weight: bold;">
+                    <input type="checkbox" id="autoSyncToggle" checked> 修改時自動同步至雲端
+                </label>
+            </div>
+        </div>
+
+        <!-- 揀選即自動載入，無需再按按鈕 -->
+        <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
+            <select id="sheetHistorySelect" onchange="onSelectHistoryChange(this.value)" style="flex: 2; min-width: 240px; padding: 10px; border: 1px solid #9ec5fe; border-radius: 6px; font-size: 14px; font-weight: bold; background: #fff;">
+                <option value="">⏳ 正在自動從 Google Sheet 讀取歷史場次...</option>
+            </select>
+            <input type="text" id="matchNote" class="admin-only" placeholder="📝 場次備註 (如：2026-10-26 星期一晚)" oninput="onMatchNoteInput()"
+                   style="flex: 1.5; min-width: 200px; padding: 10px; border: 1px solid #ced4da; border-radius: 6px; font-size: 14px;">
+            <button type="button" class="btn btn-info btn-sm admin-only" id="btnSaveGoogleForm" onclick="syncToCloudNow(true)">➕ 儲存為新場次紀錄</button>
+        </div>
+    </div>
+
     <!-- 第一部分：輸入名單與分隊 -->
     <h2>1. 球員名單及分隊 (每隊5人)</h2>
     
@@ -557,9 +618,6 @@
                 <span>⚖️ 隨機分隊時盡量平均分配位置 (PG / SG / SF / PF / C)</span>
             </label>
         </div>
-        <p style="font-size: 0.85em; color: #666; margin-top: 4px;">
-            💡 <b>防改動貼士：</b>分好隊或入緊分嗰陣，可以撳頂部「<b>🔒 鎖定畫面</b>」，或者撳「<b>🔗 複製唯讀戰況連結</b>」Send 落谷。其他人打開連結會見到最新分隊同比分，但<b>預設鎖死唔俾亂改或重設</b>！
-        </p>
     </div>
 
     <div class="teams-wrapper">
@@ -739,47 +797,33 @@
             </div>
         </div>
     </div>
-
-    <!-- ==================== 4. ☁️ Google Form / Sheet 雲端紀錄區 ==================== -->
-<h2>4. ☁️ Google Sheet 雲端歷史紀錄 (免 Apps Script)</h2>
-<div class="whatsapp-box" style="background: #eef6ff; border-color: #b6d4fe;">
-    <!-- 儲存區 (只有管理員見到) -->
-    <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 12px;" class="admin-only">
-        <input type="text" id="matchNote" placeholder="📝 輸入場次備註 (如：2026-10-24 星期六晚 東啟德)" 
-               style="flex: 1; min-width: 240px; padding: 10px; border: 1px solid #ced4da; border-radius: 6px; font-size: 14px;">
-        <button class="btn btn-info" id="btnSaveGoogleForm" onclick="submitToGoogleForm()">☁️ 儲存今次戰果去 Google Sheet</button>
-        <button class="btn btn-secondary btn-sm" onclick="openGoogleConfigModal()">⚙️ 設定連結</button>
-    </div>
-
-    <!-- 讀取歷史區 (所有人都可以睇返過往戰果) -->
-    <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
-        <select id="sheetHistorySelect" style="flex: 1; min-width: 220px; padding: 10px; border: 1px solid #ced4da; border-radius: 6px; font-size: 14px;">
-            <option value="">📂 點擊右方「讀取雲端紀錄」載入過往賽事...</option>
-        </select>
-        <button class="btn btn-purple btn-sm" onclick="loadHistoryFromSheetCSV()">🔄 讀取雲端紀錄清單</button>
-        <button class="btn btn-sm" onclick="restoreSelectedHistory()">📥 載入所選賽事畫面</button>
-    </div>
-</div>
     
-    <button class="btn btn-danger admin-only" onclick="clearAllStorage()">🗑️ 清除所有比分及分隊紀錄 (重新開波)</button>
+    <button class="btn btn-danger admin-only" onclick="startNewMatchSession()">🆕 開新波局 (清空比分並準備新場次紀錄)</button>
 </div>
 
-
-    
 <script>
-    const STORAGE_KEY = 'bball_system_responsive_v6';
+    const STORAGE_KEY = 'bball_system_responsive_v7_autosync';
     
-    // 🔑 預設管理員解鎖密碼（你可以隨時改呢個數字）
+    // 🔑 預設管理員解鎖密碼
     const ADMIN_PIN = '8888';
     let isReadOnly = false;
+    let isInitializing = true;
+
+    // ☁️ 已內建你設定好的 Google Form 預填網址與 Google Sheet CSV 網址
+    const DEFAULT_PREFILL_URL = "https://docs.google.com/forms/d/e/1FAIpQLSctkp11861dyD9K_4jO7HPL63hNV4X48WrrtYJV9v7mSPbPJg/viewform?usp=pp_url&entry.105427362=1&entry.2012376318=2&entry.1306256386=3&entry.487991908=4&entry.1671266338=5";
+    const DEFAULT_CSV_URL     = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRWVdg3IcAADVHo1kZNGWVVHdrXupB0Lfo0bW-cascaoXwqUrVgf1n69YsOsdVII6MPd19q6LYSJc1_/pub?output=csv";
+
+    let sheetHistoryRecords = [];
+    let currentEditingRowIndex = null; // Apps Script 模式下追蹤目前編輯緊邊一行
+    let autoSyncTimer = null;
+    let lastSyncedSignature = "";
 
     // 狀態管理
-    let players = []; // { id, name, team, locked, pos }
+    let players = [];
     const teamKeys = ['A', 'B', 'C', 'D'];
     const posOrder = { 'PG': 1, 'SG': 2, 'SF': 3, 'PF': 4, 'C': 5, '': 6 };
     let currentStandings = [];
     
-    // 小組賽程設定（A vs B, C vs D, A vs C, B vs D, A vs D, B vs C）
     let groupSchedule = [
         { id: 1, t1: 'A', t2: 'B', s1: '', s2: '' },
         { id: 2, t1: 'C', t2: 'D', s1: '', s2: '' },
@@ -791,49 +835,203 @@
 
     const finalInputIds = ['f1_q1_t1', 'f1_q1_t2', 'f2_q1_t1', 'f2_q1_t2', 'f1_q2_t1', 'f1_q2_t2', 'f2_q2_t1', 'f2_q2_t2'];
 
-    // 初始化網頁
-    window.onload = function() {
-        // 1. 優先檢查網址 Hash 是否有分享過來的戰況資料 (#data=...)
+    // 判斷是否運行於 Google Apps Script 環境內
+    function isAppsScriptEnv() {
+        return (typeof google !== 'undefined' && google.script && google.script.run);
+    }
+
+    // 🚀 網頁啟動：全自動載入雲端紀錄與最新戰況
+    window.onload = async function() {
+        // 設定預設今日日期備註
+        const todayStr = new Date().toLocaleDateString('zh-HK');
+        document.getElementById('matchNote').value = `${todayStr} 籃球賽`;
+
+        // 1. 若網址帶有 #data= 分享連結，優先顯示分享畫面
         if (window.location.hash && window.location.hash.startsWith('#data=')) {
             try {
                 const encoded = window.location.hash.replace('#data=', '');
                 const jsonStr = decodeURIComponent(escape(atob(encoded)));
                 const sharedState = JSON.parse(jsonStr);
                 applyStateToUI(sharedState);
-                // 透過分享連結進入的人，自動開啟「🔒 唯讀觀戰模式」防止亂改！
                 setReadOnlyMode(true);
+                isInitializing = false;
+                autoLoadCloudHistory(false); // 只載入選單，不覆蓋分享畫面
                 return;
             } catch (e) {
-                console.error("解析分享連結失敗，改為讀取本機資料", e);
+                console.error("解析分享連結失敗", e);
             }
         }
 
-        // 2. 讀取本機 LocalStorage 儲存紀錄
+        // 2. 先讀取本機暫存作快速顯示
+        let hasLocal = false;
         const savedData = localStorage.getItem(STORAGE_KEY);
         if (savedData) {
             try {
                 const parsed = JSON.parse(savedData);
                 applyStateToUI(parsed);
-                if (parsed.isReadOnly) {
-                    setReadOnlyMode(true);
-                }
-                return;
-            } catch (e) {
-                console.error("讀取儲存紀錄失敗，載入預設值", e);
-            }
+                if (parsed.isReadOnly) setReadOnlyMode(true);
+                hasLocal = true;
+            } catch (e) {}
         }
-        
-        loadDefaultPlayers();
+
+        if (!hasLocal) {
+            loadDefaultPlayers();
+            renderGroupMatches();
+            updateStandings();
+            updateWhatsAppPreview(false);
+        }
+
+        // 3. 自動連線 Google Sheet 讀取歷史清單，若雲端有最新賽事則自動載入！
+        await autoLoadCloudHistory(!hasLocal);
+        isInitializing = false;
+    };
+
+    function setSyncBadge(text, statusType) {
+        const badge = document.getElementById('syncStatusBadge');
+        if (!badge) return;
+        badge.innerText = text;
+        badge.className = 'cloud-badge ' + (statusType || '');
+    }
+
+    // 🔄 全自動讀取雲端紀錄（支援 Apps Script 直連 或 CSV 讀取）
+    async function autoLoadCloudHistory(autoApplyLatest) {
+        setSyncBadge("⏳ 正在讀取 Google Sheet...", "syncing");
+        const selectEl = document.getElementById('sheetHistorySelect');
+
+        // 模式 1：如果在 Google Sheet 的 Apps Script 入面運行，直接呼叫後端
+        if (isAppsScriptEnv()) {
+            google.script.run
+                .withSuccessHandler((records) => {
+                    sheetHistoryRecords = records || [];
+                    renderHistoryDropdown(autoApplyLatest);
+                })
+                .withFailureHandler((err) => {
+                    console.warn("Apps Script 讀取失敗，改用 CSV 讀取", err);
+                    fetchFromCSV(autoApplyLatest);
+                })
+                .getSheetRecords();
+        } else {
+            // 模式 2：透過 Google Sheet CSV 自動讀取
+            await fetchFromCSV(autoApplyLatest);
+        }
+    }
+
+    async function fetchFromCSV(autoApplyLatest) {
+        try {
+            const fetchUrl = DEFAULT_CSV_URL + (DEFAULT_CSV_URL.includes('?') ? '&' : '?') + 't=' + Date.now();
+            const res = await fetch(fetchUrl);
+            const csvText = await res.text();
+            const rows = parseCSV(csvText);
+
+            sheetHistoryRecords = [];
+            for (let i = rows.length - 1; i >= 1; i--) {
+                const r = rows[i];
+                if (r.length >= 6 && r[5].trim().startsWith('{')) {
+                    sheetHistoryRecords.push({
+                        rowIndex: i + 1,
+                        timestamp: r[0],
+                        note: r[1],
+                        rankResult: r[2],
+                        rawJson: r[5]
+                    });
+                }
+            }
+            renderHistoryDropdown(autoApplyLatest);
+        } catch (err) {
+            setSyncBadge("⚠️ 離線模式 (已儲存於本機)", "error");
+            const selectEl = document.getElementById('sheetHistorySelect');
+            selectEl.innerHTML = `<option value="">⚠️ 無法連線至 Google Sheet</option>`;
+        }
+    }
+
+    function renderHistoryDropdown(autoApplyLatest) {
+        const selectEl = document.getElementById('sheetHistorySelect');
+        if (sheetHistoryRecords.length === 0) {
+            selectEl.innerHTML = `<option value="new">🆕 目前尚無歷史紀錄（修改後將自動建立第一筆）</option>`;
+            setSyncBadge("✅ 雲端已就緒 (尚無舊紀錄)", "");
+            return;
+        }
+
+        let optionsHTML = `<option value="current">✏️ 當前編輯中場次</option>`;
+        optionsHTML += sheetHistoryRecords.map((item, idx) => 
+            `<option value="${idx}">📅 [${item.note || item.timestamp}] ${item.rankResult}</option>`
+        ).join('');
+        selectEl.innerHTML = optionsHTML;
+
+        setSyncBadge(`✅ 已同步 (${sheetHistoryRecords.length} 場歷史紀錄)`, "");
+
+        // 如果本機無紀錄或指定自動套用最新一場，即刻自動載入最新一場（Index 0）
+        if (autoApplyLatest && sheetHistoryRecords[0]) {
+            selectEl.value = "0";
+            onSelectHistoryChange("0");
+        }
+    }
+
+    // 📥 下拉選單一揀，即刻自動切換畫面（唔使再撳載入掣）
+    function onSelectHistoryChange(val) {
+        if (val === "" || val === "current" || val === "new") return;
+        const idx = parseInt(val, 10);
+        const record = sheetHistoryRecords[idx];
+        if (!record) return;
+
+        try {
+            isInitializing = true; // 暫停觸發自動寫入
+            const parsedState = JSON.parse(record.rawJson);
+            applyStateToUI(parsedState);
+            if (record.note) {
+                document.getElementById('matchNote').value = record.note;
+            }
+            currentEditingRowIndex = record.rowIndex || null;
+            lastSyncedSignature = JSON.stringify(getCurrentStateObject());
+            localStorage.setItem(STORAGE_KEY, lastSyncedSignature);
+            setSyncBadge(`📂 已載入：${record.note || record.timestamp}`, "");
+        } catch (e) {
+            alert("❌ 載入歷史資料失敗：" + e.message);
+        } finally {
+            isInitializing = false;
+        }
+    }
+
+    function onMatchNoteInput() {
+        saveToStorage();
+    }
+
+    // 🆕 開新波局（清空比分並準備新場次）
+    function startNewMatchSession() {
+        if (isReadOnly) return;
+        if (!confirm("確定要清空目前比分，準備新的一場比賽嗎？（舊場次已保留在雲端下拉選單中）")) return;
+
+        isInitializing = true;
+        currentEditingRowIndex = null;
+        const todayStr = new Date().toLocaleDateString('zh-HK');
+        const timeStr = new Date().toLocaleTimeString('zh-HK', { hour: '2-digit', minute: '2-digit' });
+        document.getElementById('matchNote').value = `${todayStr} (${timeStr}) 籃球賽`;
+
+        groupSchedule.forEach(m => { m.s1 = ''; m.s2 = ''; });
+        finalInputIds.forEach(id => { document.getElementById(id).value = ''; });
+
+        const selectEl = document.getElementById('sheetHistorySelect');
+        if (selectEl && selectEl.options.length > 0) {
+            selectEl.value = "current";
+        }
+
         renderGroupMatches();
         updateStandings();
         updateWhatsAppPreview(false);
-    };
+        isInitializing = false;
+
+        // 立即為新波局寫入雲端
+        syncToCloudNow(true);
+    }
 
     function applyStateToUI(parsed) {
         document.getElementById('playerInput').value = parsed.rawText || '';
         document.getElementById('stripNumbers').checked = parsed.stripNumbers !== false;
         if (parsed.balancePos !== undefined) {
             document.getElementById('balancePos').checked = parsed.balancePos;
+        }
+        if (parsed.matchNote) {
+            document.getElementById('matchNote').value = parsed.matchNote;
         }
         players = (parsed.players || []).map(p => ({
             ...p,
@@ -849,6 +1047,8 @@
             finalInputIds.forEach(id => {
                 if (parsed.finals[id] !== undefined) {
                     document.getElementById(id).value = parsed.finals[id];
+                } else {
+                    document.getElementById(id).value = '';
                 }
             });
         }
@@ -859,15 +1059,12 @@
     // 🔒 切換唯讀 / 管理員模式
     function toggleReadOnlyMode() {
         if (!isReadOnly) {
-            // 由管理員鎖定為唯讀模式
             setReadOnlyMode(true);
             saveToStorage();
         } else {
-            // 由唯讀模式解鎖（需要輸入密碼）
             const pin = prompt("🔑 請輸入管理員解鎖密碼（預設為 8888）：");
             if (pin === null) return;
             if (pin === ADMIN_PIN) {
-                // 如果係由分享連結入嚟並解鎖，清除網址上嘅 #data，並儲存落本機
                 if (window.location.hash.startsWith('#data=')) {
                     history.replaceState(null, null, window.location.pathname + window.location.search);
                 }
@@ -899,7 +1096,6 @@
             toggleBtn.className = 'btn btn-sm btn-secondary';
         }
 
-        // 重新渲染確保鎖定狀態生效
         renderTeams();
         renderGroupMatches();
         finalInputIds.forEach(id => {
@@ -938,6 +1134,7 @@
         });
 
         return {
+            matchNote: document.getElementById('matchNote').value,
             rawText: document.getElementById('playerInput').value,
             stripNumbers: document.getElementById('stripNumbers').checked,
             balancePos: document.getElementById('balancePos').checked,
@@ -948,24 +1145,24 @@
         };
     }
 
-    // 儲存狀態至 LocalStorage
+    // 💾 儲存至本機 + 觸發背景雲端自動同步 (Debounce 防洗版設計)
     function saveToStorage() {
-        // 如果正在瀏覽別人分享的 #data= 唯讀連結，未解鎖前不覆蓋自己本機的紀錄
         if (window.location.hash.startsWith('#data=') && isReadOnly) return;
         const state = getCurrentStateObject();
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-    }
+        const stateStr = JSON.stringify(state);
+        localStorage.setItem(STORAGE_KEY, stateStr);
 
-    // 🗑️ 雙重防呆清除所有紀錄
-    function clearAllStorage() {
-        if (isReadOnly) return;
-        const check = prompt("⚠️ 警告：這會清除所有分隊及比分紀錄！\n為防止誤觸，請輸入「RESET」（大楷）確認清除：");
-        if (check === "RESET") {
-            localStorage.removeItem(STORAGE_KEY);
-            history.replaceState(null, null, window.location.pathname + window.location.search);
-            location.reload();
-        } else if (check !== null) {
-            alert("輸入不正確，已取消清除操作。");
+        if (isInitializing || isReadOnly) return;
+        const autoSyncEl = document.getElementById('autoSyncToggle');
+        if (autoSyncEl && !autoSyncEl.checked) return;
+
+        // 如果資料有變動，等待 2.5 秒無新輸入後自動同步上 Google Sheet
+        if (stateStr !== lastSyncedSignature) {
+            setSyncBadge("✍️ 偵測到變更，準備自動同步...", "syncing");
+            if (autoSyncTimer) clearTimeout(autoSyncTimer);
+            autoSyncTimer = setTimeout(() => {
+                syncToCloudNow(false);
+            }, 2500);
         }
     }
 
@@ -989,7 +1186,6 @@
         return { name: str.trim(), pos: '' };
     }
 
-    // 智慧型解析並載入球員至待分發區
     function loadPlayers() {
         if (isReadOnly) return;
         const rawText = document.getElementById('playerInput').value;
@@ -1063,7 +1259,6 @@
         saveToStorage();
     }
 
-    // 重設所有球員回待分發區
     function resetTeams() {
         if (isReadOnly) return;
         if (!confirm("確定要將所有球員移回「待分發區」嗎？")) return;
@@ -1086,7 +1281,6 @@
         saveToStorage();
     }
 
-    // 隨機分隊
     function randomAssign() {
         if (isReadOnly) return;
         if (players.length === 0) {
@@ -1172,7 +1366,6 @@
         saveToStorage();
     }
 
-    // 渲染分隊畫面
     function renderTeams() {
         const zones = ['unassigned', 'A', 'B', 'C', 'D'];
         const positions = ['', 'PG', 'SG', 'SF', 'PF', 'C'];
@@ -1390,7 +1583,6 @@
         }, 2500);
     }
 
-    // 渲染小組賽程
     function renderGroupMatches() {
         const container = document.getElementById('group-matches');
         container.innerHTML = '';
@@ -1424,7 +1616,6 @@
         saveToStorage();
     }
 
-    // 計算並更新排名榜（勝+2 / 和+1 / 負+0，同分按得失分差排序）
     function updateStandings() {
         let stats = {
             'A': { team: 'A', played: 0, w: 0, d: 0, l: 0, pts: 0, pf: 0, pa: 0, diff: 0 },
@@ -1448,16 +1639,16 @@
 
                 if (s1 > s2) {
                     stats[m.t1].w++;
-                    stats[m.t1].pts += 2; // 勝 +2分
-                    stats[m.t2].l++;      // 負 +0分
+                    stats[m.t1].pts += 2;
+                    stats[m.t2].l++;
                     if (statusEl) {
                         statusEl.innerText = `Team ${m.t1} 勝`;
                         statusEl.className = 'match-status status-win';
                     }
                 } else if (s2 > s1) {
                     stats[m.t2].w++;
-                    stats[m.t2].pts += 2; // 勝 +2分
-                    stats[m.t1].l++;      // 負 +0分
+                    stats[m.t2].pts += 2;
+                    stats[m.t1].l++;
                     if (statusEl) {
                         statusEl.innerText = `Team ${m.t2} 勝`;
                         statusEl.className = 'match-status status-win';
@@ -1465,8 +1656,8 @@
                 } else {
                     stats[m.t1].d++;
                     stats[m.t2].d++;
-                    stats[m.t1].pts += 1; // 和 +1分
-                    stats[m.t2].pts += 1; // 和 +1分
+                    stats[m.t1].pts += 1;
+                    stats[m.t2].pts += 1;
                     if (statusEl) {
                         statusEl.innerText = `平手`;
                         statusEl.className = 'match-status status-draw';
@@ -1485,10 +1676,6 @@
             return s;
         });
 
-        // 🏆 排序邏輯：
-        // 1. 積分 (pts: 勝2分 / 和1分 / 負0分)
-        // 2. 同分下按「得失分差 (diff = 得分 - 失分)」排序
-        // 3. 若仍相同則按「累計總得分 (pf)」排序
         standingsArray.sort((a, b) => {
             if (b.pts !== a.pts) return b.pts - a.pts;
             if (b.diff !== a.diff) return b.diff - a.diff;
@@ -1546,7 +1733,6 @@
         saveToStorage();
     }
 
-    // 計算決賽及季軍戰兩節總和
     function calcFinals() {
         const getVal = (id) => {
             const val = parseInt(document.getElementById(id).value, 10);
@@ -1613,250 +1799,175 @@
     }
 
     // =========================================================================
-// ☁️ Google Form (寫入) + Google Sheet CSV (讀取) 免後台整合模組
-// =========================================================================
+    // ☁️ 全自動雲端寫入核心 (同時支援 Apps Script 直連 + Google Form 自動提交)
+    // =========================================================================
+    function buildCloudPayload() {
+        const note = document.getElementById('matchNote').value.trim() || new Date().toLocaleDateString('zh-HK');
 
-// 👉 你設定好之後，可以直接將兩條網址貼落呢度寫死喺 GitHub，咁所有波友一開即用！
-const DEFAULT_PREFILL_URL = "https://docs.google.com/forms/d/e/1FAIpQLSctkp11861dyD9K_4jO7HPL63hNV4X48WrrtYJV9v7mSPbPJg/viewform?usp=pp_url&entry.105427362=1&entry.2012376318=2&entry.1306256386=3&entry.487991908=4&entry.1671266338=5"; // 貼上 Google Form「預先填入的連結」
-const DEFAULT_CSV_URL     = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRWVdg3IcAADVHo1kZNGWVVHdrXupB0Lfo0bW-cascaoXwqUrVgf1n69YsOsdVII6MPd19q6LYSJc1_/pub?output=csv"; // 貼上 Google Sheet「發佈至網路 (.csv)」連結
+        const getTeamStr = (t) => players.filter(p => p.team === t).map(p => (p.pos ? `[${p.pos}]${p.name}` : p.name)).join(', ');
+        const allTeamsStr = `Team A: ${getTeamStr('A')} | Team B: ${getTeamStr('B')} | Team C: ${getTeamStr('C')} | Team D: ${getTeamStr('D')}`;
 
-let sheetHistoryRecords = [];
+        const f1_t1 = parseInt(document.getElementById('f1_total_t1').innerText) || 0;
+        const f1_t2 = parseInt(document.getElementById('f1_total_t2').innerText) || 0;
+        const f2_t1 = parseInt(document.getElementById('f2_total_t1').innerText) || 0;
+        const f2_t2 = parseInt(document.getElementById('f2_total_t2').innerText) || 0;
 
-function getGoogleConfig() {
-    const prefill = localStorage.getItem('bball_gform_prefill') || DEFAULT_PREFILL_URL;
-    const csvUrl  = localStorage.getItem('bball_gsheet_csv') || DEFAULT_CSV_URL;
-    return { prefill, csvUrl };
-}
+        const r1 = window.currentRankTeams ? window.currentRankTeams[1] : '第1名';
+        const r2 = window.currentRankTeams ? window.currentRankTeams[2] : '第2名';
+        const r3 = window.currentRankTeams ? window.currentRankTeams[3] : '第3名';
+        const r4 = window.currentRankTeams ? window.currentRankTeams[4] : '第4名';
 
-// ⚙️ 設定連結彈窗 (自動幫你由預填網址拆解 Form URL 同 5 個 entry ID)
-function openGoogleConfigModal() {
-    const current = getGoogleConfig();
-    const newPrefill = prompt(
-        "【步驟 1/2】請貼上 Google Form 的「預先填入連結 (Get pre-filled link)」：\n(包含 ?usp=pp_url&entry.xxxx=... 嗰條長網址)",
-        current.prefill
-    );
-    if (newPrefill === null) return;
+        const champ    = f1_t1 >= f1_t2 ? r1 : r2;
+        const runnerUp = f1_t1 >= f1_t2 ? r2 : r1;
+        const third    = f2_t1 >= f2_t2 ? r3 : r4;
+        const fourth   = f2_t1 >= f2_t2 ? r4 : r3;
+        const rankResultStr = `🥇冠軍: ${champ} | 🥈亞軍: ${runnerUp} | 🥉季軍: ${third} | 殿軍: ${fourth}`;
 
-    const newCsv = prompt(
-        "【步驟 2/2】請貼上 Google Sheet「發佈至網路 (.csv)」的連結：\n(以 output=csv 結尾嗰條網址)",
-        current.csvUrl
-    );
-    if (newCsv === null) return;
+        const groupStr = groupSchedule.map(m => `${m.t1}(${m.s1 || 0}:${m.s2 || 0})${m.t2}`).join(', ');
+        const finalStr = `冠軍戰 ${r1}(${f1_t1}:${f1_t2})${r2}, 季軍戰 ${r3}(${f2_t1}:${f2_t2})${r4}`;
+        const allScoresStr = `【小組】${groupStr} ｜ 【決賽】${finalStr}`;
 
-    localStorage.setItem('bball_gform_prefill', newPrefill.trim());
-    localStorage.setItem('bball_gsheet_csv', newCsv.trim());
-    alert("✅ Google 雲端連結設定已儲存！");
-}
+        const rawJsonStr = JSON.stringify(getCurrentStateObject());
 
-// 🔍 自動從「預填連結」拆解出提交網址 (formResponse) 同埋 5 個欄位 ID
-function parsePrefillUrl(prefillUrl) {
-    try {
-        const urlObj = new URL(prefillUrl);
-        // 將 /viewform 轉成 /formResponse
-        const actionUrl = urlObj.origin + urlObj.pathname.replace('/viewform', '/formResponse');
-        const entries = [];
-        for (const [key, val] of urlObj.searchParams.entries()) {
-            if (key.startsWith('entry.')) {
-                entries.push(key);
+        return { note, rankResultStr, allTeamsStr, allScoresStr, rawJsonStr };
+    }
+
+    function parsePrefillUrl(prefillUrl) {
+        try {
+            const urlObj = new URL(prefillUrl);
+            const actionUrl = urlObj.origin + urlObj.pathname.replace('/viewform', '/formResponse');
+            const entries = [];
+            for (const [key] of urlObj.searchParams.entries()) {
+                if (key.startsWith('entry.')) entries.push(key);
             }
-        }
-        return { actionUrl, entries };
-    } catch (e) {
-        return null;
-    }
-}
-
-// ☁️ 一鍵將今次分隊及比分送去 Google Form (自動寫入 Google Sheet)
-async function submitToGoogleForm() {
-    const { prefill } = getGoogleConfig();
-    if (!prefill) {
-        alert("請先點擊「⚙️ 設定連結」貼上 Google Form 預填網址！");
-        openGoogleConfigModal();
-        return;
-    }
-
-    const parsed = parsePrefillUrl(prefill);
-    if (!parsed || parsed.entries.length < 5) {
-        alert("❌ 預填連結格式不正確，或少於 5 個問題欄位！請確認你在獲取預填連結時 5 格都有填寫內容。");
-        return;
-    }
-
-    const btn = document.getElementById('btnSaveGoogleForm');
-    const note = document.getElementById('matchNote').value.trim() || new Date().toLocaleDateString('zh-HK');
-
-    // 1. 整理四隊名單
-    const getTeamStr = (t) => players.filter(p => p.team === t).map(p => (p.pos ? `[${p.pos}]${p.name}` : p.name)).join(', ');
-    const allTeamsStr = `Team A: ${getTeamStr('A')} | Team B: ${getTeamStr('B')} | Team C: ${getTeamStr('C')} | Team D: ${getTeamStr('D')}`;
-
-    // 2. 整理冠亞季殿結果
-    const f1_t1 = parseInt(document.getElementById('f1_total_t1').innerText) || 0;
-    const f1_t2 = parseInt(document.getElementById('f1_total_t2').innerText) || 0;
-    const f2_t1 = parseInt(document.getElementById('f2_total_t1').innerText) || 0;
-    const f2_t2 = parseInt(document.getElementById('f2_total_t2').innerText) || 0;
-
-    const r1 = window.currentRankTeams ? window.currentRankTeams[1] : '第1名';
-    const r2 = window.currentRankTeams ? window.currentRankTeams[2] : '第2名';
-    const r3 = window.currentRankTeams ? window.currentRankTeams[3] : '第3名';
-    const r4 = window.currentRankTeams ? window.currentRankTeams[4] : '第4名';
-
-    const champ    = f1_t1 >= f1_t2 ? r1 : r2;
-    const runnerUp = f1_t1 >= f1_t2 ? r2 : r1;
-    const third    = f2_t1 >= f2_t2 ? r3 : r4;
-    const fourth   = f2_t1 >= f2_t2 ? r4 : r3;
-    const rankResultStr = `🥇冠軍: ${champ} | 🥈亞軍: ${runnerUp} | 🥉季軍: ${third} | 殿軍: ${fourth}`;
-
-    // 3. 整理所有比分
-    const groupStr = groupSchedule.map(m => `${m.t1}(${m.s1 || 0}:${m.s2 || 0})${m.t2}`).join(', ');
-    const finalStr = `冠軍戰 ${r1}(${f1_t1}:${f1_t2})${r2}, 季軍戰 ${r3}(${f2_t1}:${f2_t2})${r4}`;
-    const allScoresStr = `【小組】${groupStr} ｜ 【決賽】${finalStr}`;
-
-    // 4. 完整系統還原 JSON
-    const rawJsonStr = JSON.stringify(getCurrentStateObject());
-
-    // 封裝成 FormData 對應返 5 個 entry ID
-    const formData = new URLSearchParams();
-    formData.append(parsed.entries[0], note);           // 第 1 題：比賽日期及備註
-    formData.append(parsed.entries[1], rankResultStr);  // 第 2 題：冠亞季殿結果
-    formData.append(parsed.entries[2], allTeamsStr);    // 第 3 題：四隊分組名單
-    formData.append(parsed.entries[3], allScoresStr);   // 第 4 題：全部比分結果
-    formData.append(parsed.entries[4], rawJsonStr);     // 第 5 題：系統還原資料(JSON)
-
-    try {
-        btn.disabled = true;
-        btn.innerText = "⏳ 正在寫入 Google Sheet...";
-
-        await fetch(parsed.actionUrl, {
-            method: 'POST',
-            mode: 'no-cors', // 必須用 no-cors 直接射入 Google Form
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: formData.toString()
-        });
-
-        alert("✅ 已成功將今次比賽結果存入 Google Sheet！");
-    } catch (err) {
-        alert("❌ 儲存失敗：" + err.message);
-    } finally {
-        btn.disabled = false;
-        btn.innerText = "☁️ 儲存今次戰果去 Google Sheet";
-    }
-}
-
-// 📄 輕量級 CSV 解析器 (支援雙引號內的逗號與 JSON 字串)
-function parseCSV(csvText) {
-    const rows = [];
-    let currentRow = [];
-    let currentCell = '';
-    let inQuotes = false;
-
-    for (let i = 0; i < csvText.length; i++) {
-        const c = csvText[i];
-        const next = csvText[i + 1];
-
-        if (inQuotes) {
-            if (c === '"' && next === '"') {
-                currentCell += '"';
-                i++; // 跳過轉義雙引號
-            } else if (c === '"') {
-                inQuotes = false;
-            } else {
-                currentCell += c;
-            }
-        } else {
-            if (c === '"') {
-                inQuotes = true;
-            } else if (c === ',') {
-                currentRow.push(currentCell);
-                currentCell = '';
-            } else if (c === '\r' && next === '\n') {
-                currentRow.push(currentCell);
-                rows.push(currentRow);
-                currentRow = [];
-                currentCell = '';
-                i++;
-            } else if (c === '\n') {
-                currentRow.push(currentCell);
-                rows.push(currentRow);
-                currentRow = [];
-                currentCell = '';
-            } else {
-                currentCell += c;
-            }
+            return { actionUrl, entries };
+        } catch (e) {
+            return null;
         }
     }
-    if (currentCell !== '' || currentRow.length > 0) {
-        currentRow.push(currentCell);
-        rows.push(currentRow);
-    }
-    return rows;
-}
 
-// 🔄 從 Google Sheet 發佈的 CSV 讀取歷史清單
-async function loadHistoryFromSheetCSV() {
-    const { csvUrl } = getGoogleConfig();
-    if (!csvUrl) {
-        alert("請先點擊「⚙️ 設定連結」貼上 Google Sheet 發佈的 CSV 網址！");
-        openGoogleConfigModal();
-        return;
-    }
+    // ☁️ 執行雲端同步（forceInsertNewRow = true 代表強制新增一行）
+    async function syncToCloudNow(forceInsertNewRow) {
+        if (isReadOnly) return;
+        if (autoSyncTimer) clearTimeout(autoSyncTimer);
 
-    const selectEl = document.getElementById('sheetHistorySelect');
-    selectEl.innerHTML = `<option value="">⏳ 正在從 Google Sheet 載入紀錄...</option>`;
+        const payload = buildCloudPayload();
+        lastSyncedSignature = payload.rawJsonStr;
+        setSyncBadge("⏳ 正在同步至 Google Sheet...", "syncing");
 
-    try {
-        // 加上時間戳避免瀏覽器 Cache 舊資料
-        const fetchUrl = csvUrl + (csvUrl.includes('?') ? '&' : '?') + 't=' + Date.now();
-        const res = await fetch(fetchUrl);
-        const csvText = await res.text();
-        const rows = parseCSV(csvText);
-
-        sheetHistoryRecords = [];
-        // 第 0 行係標題：[時間戳記, 比賽日期及備註, 冠亞季殿結果, 四隊分組名單, 全部比分結果, 系統還原資料(JSON)]
-        for (let i = rows.length - 1; i >= 1; i--) {
-            const r = rows[i];
-            if (r.length >= 6 && r[5].trim().startsWith('{')) {
-                sheetHistoryRecords.push({
-                    timestamp: r[0],
-                    note: r[1],
-                    rankResult: r[2],
-                    rawJson: r[5]
-                });
-            }
-        }
-
-        if (sheetHistoryRecords.length === 0) {
-            selectEl.innerHTML = `<option value="">📭 目前 Google Sheet 尚無紀錄</option>`;
+        // 1. 若在 Google Apps Script 環境，直接寫入或更新該行
+        if (isAppsScriptEnv()) {
+            const targetRow = forceInsertNewRow ? null : currentEditingRowIndex;
+            google.script.run
+                .withSuccessHandler((res) => {
+                    if (res && res.rowIndex) currentEditingRowIndex = res.rowIndex;
+                    const timeStr = new Date().toLocaleTimeString('zh-HK', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+                    setSyncBadge(`✅ 已自動同步 (${timeStr})`, "");
+                    autoLoadCloudHistory(false);
+                })
+                .withFailureHandler((err) => {
+                    console.warn("Apps Script 寫入失敗，改用 Google Form 提交", err);
+                    sendViaGoogleForm(payload);
+                })
+                .saveRecordToSheet(payload, targetRow);
             return;
         }
 
-        selectEl.innerHTML = sheetHistoryRecords.map((item, idx) => 
-            `<option value="${idx}">📅 [${item.note || item.timestamp}] ${item.rankResult}</option>`
-        ).join('');
-    } catch (err) {
-        selectEl.innerHTML = `<option value="">❌ 讀取失敗，請確認 CSV 網址已發佈至網路</option>`;
+        // 2. 若在 GitHub 或一般瀏覽器，透過 Google Form 背景極速寫入 Google Sheet
+        await sendViaGoogleForm(payload);
     }
-}
 
-// 📥 將揀選嘅歷史紀錄一鍵還原到網頁畫面
-function restoreSelectedHistory() {
-    const idx = document.getElementById('sheetHistorySelect').value;
-    if (idx === "" || !sheetHistoryRecords[idx]) {
-        alert("請先點擊「🔄 讀取雲端紀錄清單」並揀選一場過往比賽！");
-        return;
+    async function sendViaGoogleForm(payload) {
+        const parsed = parsePrefillUrl(DEFAULT_PREFILL_URL);
+        if (!parsed || parsed.entries.length < 5) {
+            setSyncBadge("❌ Google Form 連結設定錯誤", "error");
+            return;
+        }
+
+        const formData = new URLSearchParams();
+        formData.append(parsed.entries[0], payload.note);
+        formData.append(parsed.entries[1], payload.rankResultStr);
+        formData.append(parsed.entries[2], payload.allTeamsStr);
+        formData.append(parsed.entries[3], payload.allScoresStr);
+        formData.append(parsed.entries[4], payload.rawJsonStr);
+
+        try {
+            await fetch(parsed.actionUrl, {
+                method: 'POST',
+                mode: 'no-cors',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: formData.toString()
+            });
+
+            const timeStr = new Date().toLocaleTimeString('zh-HK', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            setSyncBadge(`✅ 已自動同步至雲端 (${timeStr})`, "");
+
+            // 將最新狀態即時加入前端下拉選單頂部，無需等待 Google CSV 快取刷新
+            const newRecord = {
+                timestamp: new Date().toLocaleString('zh-HK'),
+                note: payload.note,
+                rankResult: payload.rankResultStr,
+                rawJson: payload.rawJsonStr
+            };
+            if (sheetHistoryRecords.length > 0 && sheetHistoryRecords[0].note === payload.note) {
+                sheetHistoryRecords[0] = newRecord;
+            } else {
+                sheetHistoryRecords.unshift(newRecord);
+            }
+            renderHistoryDropdown(false);
+        } catch (err) {
+            setSyncBadge("⚠️ 自動同步失敗，請檢查網絡", "error");
+        }
     }
-    if (!confirm("載入歷史紀錄會覆蓋目前畫面上的分隊同比分，確定要載入嗎？")) return;
 
-    try {
-        const record = sheetHistoryRecords[idx];
-        const parsedState = JSON.parse(record.rawJson);
-        applyStateToUI(parsedState);
-        saveToStorage();
-        alert(`✅ 已成功還原【${record.note || record.timestamp}】的分隊與賽果！`);
-    } catch (e) {
-        alert("❌ 還原資料格式錯誤：" + e.message);
+    // 📄 輕量級 CSV 解析器
+    function parseCSV(csvText) {
+        const rows = [];
+        let currentRow = [];
+        let currentCell = '';
+        let inQuotes = false;
+
+        for (let i = 0; i < csvText.length; i++) {
+            const c = csvText[i];
+            const next = csvText[i + 1];
+
+            if (inQuotes) {
+                if (c === '"' && next === '"') {
+                    currentCell += '"';
+                    i++;
+                } else if (c === '"') {
+                    inQuotes = false;
+                } else {
+                    currentCell += c;
+                }
+            } else {
+                if (c === '"') {
+                    inQuotes = true;
+                } else if (c === ',') {
+                    currentRow.push(currentCell);
+                    currentCell = '';
+                } else if (c === '\r' && next === '\n') {
+                    currentRow.push(currentCell);
+                    rows.push(currentRow);
+                    currentRow = [];
+                    currentCell = '';
+                    i++;
+                } else if (c === '\n') {
+                    currentRow.push(currentCell);
+                    rows.push(currentRow);
+                    currentRow = [];
+                    currentCell = '';
+                } else {
+                    currentCell += c;
+                }
+            }
+        }
+        if (currentCell !== '' || currentRow.length > 0) {
+            currentRow.push(currentCell);
+            rows.push(currentRow);
+        }
+        return rows;
     }
-}
-
-    
 </script>
 
 </body>
