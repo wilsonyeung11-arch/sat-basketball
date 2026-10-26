@@ -740,9 +740,32 @@
         </div>
     </div>
 
+    <!-- ==================== 4. ☁️ Google Form / Sheet 雲端紀錄區 ==================== -->
+<h2>4. ☁️ Google Sheet 雲端歷史紀錄 (免 Apps Script)</h2>
+<div class="whatsapp-box" style="background: #eef6ff; border-color: #b6d4fe;">
+    <!-- 儲存區 (只有管理員見到) -->
+    <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 12px;" class="admin-only">
+        <input type="text" id="matchNote" placeholder="📝 輸入場次備註 (如：2026-10-24 星期六晚 東啟德)" 
+               style="flex: 1; min-width: 240px; padding: 10px; border: 1px solid #ced4da; border-radius: 6px; font-size: 14px;">
+        <button class="btn btn-info" id="btnSaveGoogleForm" onclick="submitToGoogleForm()">☁️ 儲存今次戰果去 Google Sheet</button>
+        <button class="btn btn-secondary btn-sm" onclick="openGoogleConfigModal()">⚙️ 設定連結</button>
+    </div>
+
+    <!-- 讀取歷史區 (所有人都可以睇返過往戰果) -->
+    <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
+        <select id="sheetHistorySelect" style="flex: 1; min-width: 220px; padding: 10px; border: 1px solid #ced4da; border-radius: 6px; font-size: 14px;">
+            <option value="">📂 點擊右方「讀取雲端紀錄」載入過往賽事...</option>
+        </select>
+        <button class="btn btn-purple btn-sm" onclick="loadHistoryFromSheetCSV()">🔄 讀取雲端紀錄清單</button>
+        <button class="btn btn-sm" onclick="restoreSelectedHistory()">📥 載入所選賽事畫面</button>
+    </div>
+</div>
+    
     <button class="btn btn-danger admin-only" onclick="clearAllStorage()">🗑️ 清除所有比分及分隊紀錄 (重新開波)</button>
 </div>
 
+
+    
 <script>
     const STORAGE_KEY = 'bball_system_responsive_v6';
     
@@ -1588,6 +1611,252 @@
             thirdEl.innerText = `等待輸入兩節比分...`;
         }
     }
+
+    // =========================================================================
+// ☁️ Google Form (寫入) + Google Sheet CSV (讀取) 免後台整合模組
+// =========================================================================
+
+// 👉 你設定好之後，可以直接將兩條網址貼落呢度寫死喺 GitHub，咁所有波友一開即用！
+const DEFAULT_PREFILL_URL = "https://docs.google.com/forms/d/e/1FAIpQLSctkp11861dyD9K_4jO7HPL63hNV4X48WrrtYJV9v7mSPbPJg/viewform?usp=pp_url&entry.105427362=1&entry.2012376318=2&entry.1306256386=3&entry.487991908=4&entry.1671266338=5"; // 貼上 Google Form「預先填入的連結」
+const DEFAULT_CSV_URL     = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRWVdg3IcAADVHo1kZNGWVVHdrXupB0Lfo0bW-cascaoXwqUrVgf1n69YsOsdVII6MPd19q6LYSJc1_/pub?output=csv"; // 貼上 Google Sheet「發佈至網路 (.csv)」連結
+
+let sheetHistoryRecords = [];
+
+function getGoogleConfig() {
+    const prefill = localStorage.getItem('bball_gform_prefill') || DEFAULT_PREFILL_URL;
+    const csvUrl  = localStorage.getItem('bball_gsheet_csv') || DEFAULT_CSV_URL;
+    return { prefill, csvUrl };
+}
+
+// ⚙️ 設定連結彈窗 (自動幫你由預填網址拆解 Form URL 同 5 個 entry ID)
+function openGoogleConfigModal() {
+    const current = getGoogleConfig();
+    const newPrefill = prompt(
+        "【步驟 1/2】請貼上 Google Form 的「預先填入連結 (Get pre-filled link)」：\n(包含 ?usp=pp_url&entry.xxxx=... 嗰條長網址)",
+        current.prefill
+    );
+    if (newPrefill === null) return;
+
+    const newCsv = prompt(
+        "【步驟 2/2】請貼上 Google Sheet「發佈至網路 (.csv)」的連結：\n(以 output=csv 結尾嗰條網址)",
+        current.csvUrl
+    );
+    if (newCsv === null) return;
+
+    localStorage.setItem('bball_gform_prefill', newPrefill.trim());
+    localStorage.setItem('bball_gsheet_csv', newCsv.trim());
+    alert("✅ Google 雲端連結設定已儲存！");
+}
+
+// 🔍 自動從「預填連結」拆解出提交網址 (formResponse) 同埋 5 個欄位 ID
+function parsePrefillUrl(prefillUrl) {
+    try {
+        const urlObj = new URL(prefillUrl);
+        // 將 /viewform 轉成 /formResponse
+        const actionUrl = urlObj.origin + urlObj.pathname.replace('/viewform', '/formResponse');
+        const entries = [];
+        for (const [key, val] of urlObj.searchParams.entries()) {
+            if (key.startsWith('entry.')) {
+                entries.push(key);
+            }
+        }
+        return { actionUrl, entries };
+    } catch (e) {
+        return null;
+    }
+}
+
+// ☁️ 一鍵將今次分隊及比分送去 Google Form (自動寫入 Google Sheet)
+async function submitToGoogleForm() {
+    const { prefill } = getGoogleConfig();
+    if (!prefill) {
+        alert("請先點擊「⚙️ 設定連結」貼上 Google Form 預填網址！");
+        openGoogleConfigModal();
+        return;
+    }
+
+    const parsed = parsePrefillUrl(prefill);
+    if (!parsed || parsed.entries.length < 5) {
+        alert("❌ 預填連結格式不正確，或少於 5 個問題欄位！請確認你在獲取預填連結時 5 格都有填寫內容。");
+        return;
+    }
+
+    const btn = document.getElementById('btnSaveGoogleForm');
+    const note = document.getElementById('matchNote').value.trim() || new Date().toLocaleDateString('zh-HK');
+
+    // 1. 整理四隊名單
+    const getTeamStr = (t) => players.filter(p => p.team === t).map(p => (p.pos ? `[${p.pos}]${p.name}` : p.name)).join(', ');
+    const allTeamsStr = `Team A: ${getTeamStr('A')} | Team B: ${getTeamStr('B')} | Team C: ${getTeamStr('C')} | Team D: ${getTeamStr('D')}`;
+
+    // 2. 整理冠亞季殿結果
+    const f1_t1 = parseInt(document.getElementById('f1_total_t1').innerText) || 0;
+    const f1_t2 = parseInt(document.getElementById('f1_total_t2').innerText) || 0;
+    const f2_t1 = parseInt(document.getElementById('f2_total_t1').innerText) || 0;
+    const f2_t2 = parseInt(document.getElementById('f2_total_t2').innerText) || 0;
+
+    const r1 = window.currentRankTeams ? window.currentRankTeams[1] : '第1名';
+    const r2 = window.currentRankTeams ? window.currentRankTeams[2] : '第2名';
+    const r3 = window.currentRankTeams ? window.currentRankTeams[3] : '第3名';
+    const r4 = window.currentRankTeams ? window.currentRankTeams[4] : '第4名';
+
+    const champ    = f1_t1 >= f1_t2 ? r1 : r2;
+    const runnerUp = f1_t1 >= f1_t2 ? r2 : r1;
+    const third    = f2_t1 >= f2_t2 ? r3 : r4;
+    const fourth   = f2_t1 >= f2_t2 ? r4 : r3;
+    const rankResultStr = `🥇冠軍: ${champ} | 🥈亞軍: ${runnerUp} | 🥉季軍: ${third} | 殿軍: ${fourth}`;
+
+    // 3. 整理所有比分
+    const groupStr = groupSchedule.map(m => `${m.t1}(${m.s1 || 0}:${m.s2 || 0})${m.t2}`).join(', ');
+    const finalStr = `冠軍戰 ${r1}(${f1_t1}:${f1_t2})${r2}, 季軍戰 ${r3}(${f2_t1}:${f2_t2})${r4}`;
+    const allScoresStr = `【小組】${groupStr} ｜ 【決賽】${finalStr}`;
+
+    // 4. 完整系統還原 JSON
+    const rawJsonStr = JSON.stringify(getCurrentStateObject());
+
+    // 封裝成 FormData 對應返 5 個 entry ID
+    const formData = new URLSearchParams();
+    formData.append(parsed.entries[0], note);           // 第 1 題：比賽日期及備註
+    formData.append(parsed.entries[1], rankResultStr);  // 第 2 題：冠亞季殿結果
+    formData.append(parsed.entries[2], allTeamsStr);    // 第 3 題：四隊分組名單
+    formData.append(parsed.entries[3], allScoresStr);   // 第 4 題：全部比分結果
+    formData.append(parsed.entries[4], rawJsonStr);     // 第 5 題：系統還原資料(JSON)
+
+    try {
+        btn.disabled = true;
+        btn.innerText = "⏳ 正在寫入 Google Sheet...";
+
+        await fetch(parsed.actionUrl, {
+            method: 'POST',
+            mode: 'no-cors', // 必須用 no-cors 直接射入 Google Form
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: formData.toString()
+        });
+
+        alert("✅ 已成功將今次比賽結果存入 Google Sheet！");
+    } catch (err) {
+        alert("❌ 儲存失敗：" + err.message);
+    } finally {
+        btn.disabled = false;
+        btn.innerText = "☁️ 儲存今次戰果去 Google Sheet";
+    }
+}
+
+// 📄 輕量級 CSV 解析器 (支援雙引號內的逗號與 JSON 字串)
+function parseCSV(csvText) {
+    const rows = [];
+    let currentRow = [];
+    let currentCell = '';
+    let inQuotes = false;
+
+    for (let i = 0; i < csvText.length; i++) {
+        const c = csvText[i];
+        const next = csvText[i + 1];
+
+        if (inQuotes) {
+            if (c === '"' && next === '"') {
+                currentCell += '"';
+                i++; // 跳過轉義雙引號
+            } else if (c === '"') {
+                inQuotes = false;
+            } else {
+                currentCell += c;
+            }
+        } else {
+            if (c === '"') {
+                inQuotes = true;
+            } else if (c === ',') {
+                currentRow.push(currentCell);
+                currentCell = '';
+            } else if (c === '\r' && next === '\n') {
+                currentRow.push(currentCell);
+                rows.push(currentRow);
+                currentRow = [];
+                currentCell = '';
+                i++;
+            } else if (c === '\n') {
+                currentRow.push(currentCell);
+                rows.push(currentRow);
+                currentRow = [];
+                currentCell = '';
+            } else {
+                currentCell += c;
+            }
+        }
+    }
+    if (currentCell !== '' || currentRow.length > 0) {
+        currentRow.push(currentCell);
+        rows.push(currentRow);
+    }
+    return rows;
+}
+
+// 🔄 從 Google Sheet 發佈的 CSV 讀取歷史清單
+async function loadHistoryFromSheetCSV() {
+    const { csvUrl } = getGoogleConfig();
+    if (!csvUrl) {
+        alert("請先點擊「⚙️ 設定連結」貼上 Google Sheet 發佈的 CSV 網址！");
+        openGoogleConfigModal();
+        return;
+    }
+
+    const selectEl = document.getElementById('sheetHistorySelect');
+    selectEl.innerHTML = `<option value="">⏳ 正在從 Google Sheet 載入紀錄...</option>`;
+
+    try {
+        // 加上時間戳避免瀏覽器 Cache 舊資料
+        const fetchUrl = csvUrl + (csvUrl.includes('?') ? '&' : '?') + 't=' + Date.now();
+        const res = await fetch(fetchUrl);
+        const csvText = await res.text();
+        const rows = parseCSV(csvText);
+
+        sheetHistoryRecords = [];
+        // 第 0 行係標題：[時間戳記, 比賽日期及備註, 冠亞季殿結果, 四隊分組名單, 全部比分結果, 系統還原資料(JSON)]
+        for (let i = rows.length - 1; i >= 1; i--) {
+            const r = rows[i];
+            if (r.length >= 6 && r[5].trim().startsWith('{')) {
+                sheetHistoryRecords.push({
+                    timestamp: r[0],
+                    note: r[1],
+                    rankResult: r[2],
+                    rawJson: r[5]
+                });
+            }
+        }
+
+        if (sheetHistoryRecords.length === 0) {
+            selectEl.innerHTML = `<option value="">📭 目前 Google Sheet 尚無紀錄</option>`;
+            return;
+        }
+
+        selectEl.innerHTML = sheetHistoryRecords.map((item, idx) => 
+            `<option value="${idx}">📅 [${item.note || item.timestamp}] ${item.rankResult}</option>`
+        ).join('');
+    } catch (err) {
+        selectEl.innerHTML = `<option value="">❌ 讀取失敗，請確認 CSV 網址已發佈至網路</option>`;
+    }
+}
+
+// 📥 將揀選嘅歷史紀錄一鍵還原到網頁畫面
+function restoreSelectedHistory() {
+    const idx = document.getElementById('sheetHistorySelect').value;
+    if (idx === "" || !sheetHistoryRecords[idx]) {
+        alert("請先點擊「🔄 讀取雲端紀錄清單」並揀選一場過往比賽！");
+        return;
+    }
+    if (!confirm("載入歷史紀錄會覆蓋目前畫面上的分隊同比分，確定要載入嗎？")) return;
+
+    try {
+        const record = sheetHistoryRecords[idx];
+        const parsedState = JSON.parse(record.rawJson);
+        applyStateToUI(parsedState);
+        saveToStorage();
+        alert(`✅ 已成功還原【${record.note || record.timestamp}】的分隊與賽果！`);
+    } catch (e) {
+        alert("❌ 還原資料格式錯誤：" + e.message);
+    }
+}
+
+    
 </script>
 
 </body>
